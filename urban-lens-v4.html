@@ -1,0 +1,1716 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Urban Lens — São Paulo</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#07111c;--bg2:#0b1929;--bg3:#112036;
+  --bdr:rgba(255,255,255,.05);--bdr2:rgba(255,255,255,.10);
+  --ink:#dde6f0;--ink2:#7a97b0;--ink3:#3d5a74;
+  --cyan:#00d4f0;--red:#ff3a5c;--amb:#ffb020;--grn:#00de70;
+  --pw:276px;--sb:40px;--cw:248px;
+  --sans:'IBM Plex Sans',sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+  --disp:'Barlow Condensed',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:13px}
+
+/* ── HEADER ── */
+#hdr{position:fixed;top:0;left:0;right:0;height:var(--sb);background:rgba(7,17,28,.97);backdrop-filter:blur(14px);border-bottom:1px solid var(--bdr2);display:flex;align-items:center;padding:0 16px;z-index:200;gap:14px}
+#brand{font-family:var(--disp);font-size:20px;font-weight:800;letter-spacing:3.5px;color:var(--ink);line-height:1;flex-shrink:0}
+#brand em{color:var(--cyan);font-style:normal}
+.h-sep{color:var(--bdr2);margin:0 1px}
+#h-city{font-family:var(--mono);font-size:9px;color:var(--ink2);letter-spacing:2px}
+#crisis-badge{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:1.2px;padding:2px 9px;border-radius:2px;background:rgba(255,58,92,.15);color:var(--red);border:1px solid rgba(255,58,92,.3);display:none;animation:fadein .5s ease}
+#crisis-badge.show{display:block}
+#h-mid{margin-left:auto;display:flex;align-items:center;gap:14px;font-family:var(--mono);font-size:9px;color:var(--ink2)}
+.h-val{color:var(--cyan);font-weight:500}
+#h-status{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:1.5px;padding:2px 8px;border-radius:2px;background:rgba(255,58,92,.13);color:var(--red)}
+#h-status.on{background:rgba(0,222,112,.09);color:var(--grn)}
+#clock{font-family:var(--mono);font-size:11.5px;color:var(--ink);letter-spacing:1px}
+
+/* ── SHELL ── */
+#shell{position:fixed;top:var(--sb);left:0;right:0;bottom:0;display:grid;grid-template-columns:var(--pw) 1fr var(--cw);transition:grid-template-columns .2s}
+#shell.right-collapsed{grid-template-columns:var(--pw) 1fr 28px}
+
+/* ── LEFT PANEL ── */
+#panel{background:var(--bg2);border-right:1px solid var(--bdr2);overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;scrollbar-width:thin;scrollbar-color:var(--bdr2) transparent}
+#panel::-webkit-scrollbar{width:3px}
+#panel::-webkit-scrollbar-thumb{background:var(--bdr2)}
+.sec{border-bottom:1px solid var(--bdr);padding:10px 12px}
+.sec-hd{font-family:var(--mono);font-size:8px;letter-spacing:2.5px;color:var(--ink3);text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
+.sec-hd:hover{color:var(--ink2)}
+.sec-hd .sdot{width:5px;height:5px;border-radius:50%;flex-shrink:0;background:currentColor}
+.sec-hd .chev{margin-left:auto;font-size:10px;transition:transform .2s;color:var(--ink3)}
+.sec-hd.collapsed .chev{transform:rotate(-90deg)}
+.sec-body{overflow:hidden;transition:max-height .25s ease}
+
+/* ── LAYER ITEMS ── */
+#layer-list{display:flex;flex-direction:column;gap:1px}
+.li{display:flex;align-items:center;gap:7px;padding:6px 7px;border-radius:3px;cursor:pointer;border:1px solid transparent;transition:all .15s}
+.li.on{background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.07)}
+.li.off{opacity:.27}
+.li.crisis-layer{opacity:1!important}
+.li:hover{opacity:1!important;background:var(--bg3)}
+.l-ico{font-size:15px;width:19px;text-align:center;flex-shrink:0;line-height:1}
+.l-body{flex:1;min-width:0}
+.l-name{display:block;font-family:var(--disp);font-size:11.5px;font-weight:700;letter-spacing:.7px;color:var(--ink);text-transform:uppercase;line-height:1}
+.li.on .l-name{color:var(--lc)}
+.li.crisis-layer .l-name{color:var(--lc)!important}
+.l-stat{display:block;font-family:var(--mono);font-size:7.5px;color:var(--ink2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.l-src{display:block;font-family:var(--mono);font-size:6.5px;color:var(--ink3);margin-top:1px}
+.tog{width:26px;height:13px;border-radius:7px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.09);flex-shrink:0;position:relative;transition:background .15s;cursor:pointer}
+.tog.on{background:var(--lc,var(--cyan));border-color:transparent}
+.tog::after{content:'';position:absolute;left:2px;top:2px;width:7px;height:7px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.tog.on::after{transform:translateX(13px)}
+
+/* ── ZONEAMENTO ── */
+.z-btns{display:flex;flex-wrap:wrap;gap:3px}
+.z-btn{font-family:var(--mono);font-size:7px;letter-spacing:.7px;padding:3px 6px;border-radius:2px;border:1px solid var(--bdr2);background:transparent;color:var(--ink2);cursor:pointer;transition:all .15s;text-transform:uppercase}
+.z-btn:hover{border-color:var(--ink2);color:var(--ink)}
+.z-btn.act{border-color:var(--zc,var(--cyan));color:var(--zc,var(--cyan));background:rgba(255,255,255,.04)}
+#z-legend{margin-top:5px;font-family:var(--mono);font-size:7.5px;color:var(--ink3);line-height:1.9;display:none}
+
+/* ── investigative hint ── */
+#inv-hint{padding:10px 12px;border-bottom:1px solid var(--bdr);background:rgba(0,212,240,.04)}
+#inv-hint p{font-family:var(--mono);font-size:7.5px;line-height:1.65;color:var(--ink2)}
+#inv-hint strong{color:var(--cyan)}
+
+/* ── MAP ── */
+#map-wrap{position:relative;overflow:hidden}
+#map{position:absolute;inset:0}
+#map-loader{position:absolute;inset:0;z-index:10;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-family:var(--mono);font-size:9px;letter-spacing:3px;color:var(--ink3)}
+.ring{width:30px;height:30px;border-radius:50%;border:2px solid var(--bdr2);border-top-color:var(--cyan);animation:spin .8s linear infinite}
+
+/* ── RIGHT COLUMN (alerts + chat stacked) ── */
+#right-col{background:var(--bg2);border-left:1px solid var(--bdr2);display:flex;flex-direction:column;overflow:hidden}
+#right-col-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 10px 6px;border-bottom:1px solid var(--bdr);flex-shrink:0}
+#right-col-title{font-family:var(--mono);font-size:7.5px;letter-spacing:2px;color:var(--ink2);text-transform:uppercase}
+#right-toggle-btn{background:none;border:none;cursor:pointer;color:var(--ink3);font-size:14px;line-height:1;padding:0 2px;flex-shrink:0}
+#right-toggle-btn:hover{color:var(--ink)}
+#right-scroll{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--bdr2) transparent;display:flex;flex-direction:column}
+#right-scroll::-webkit-scrollbar{width:2px}
+#right-scroll::-webkit-scrollbar-thumb{background:var(--bdr2)}
+
+/* Collapsed state */
+#shell.right-collapsed #right-col-hdr{padding:10px 6px;justify-content:center}
+#shell.right-collapsed #right-col-title{display:none}
+#shell.right-collapsed #right-scroll{display:none}
+#shell.right-collapsed #right-toggle-btn{transform:rotate(180deg)}
+#right-col-lbl{display:none;writing-mode:vertical-lr;font-family:var(--mono);font-size:7.5px;letter-spacing:2.5px;color:var(--ink3);text-transform:uppercase;transform:rotate(180deg);margin:10px auto 0}
+#shell.right-collapsed #right-col-lbl{display:block}
+
+/* ── ALERTS BLOCK (top of right col) ── */
+#alerts-block{border-bottom:1px solid var(--bdr2);flex-shrink:0}
+.rblock-hd{font-family:var(--mono);font-size:7.5px;letter-spacing:2px;color:var(--ink3);text-transform:uppercase;padding:7px 10px 5px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--bdr);cursor:pointer;user-select:none}
+.rblock-hd:hover{color:var(--ink2)}
+.rblock-hd .sdot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.rblock-hd .chev{margin-left:auto;font-size:9px;transition:transform .2s}
+.rblock-hd.collapsed .chev{transform:rotate(-90deg)}
+.rblock-body{padding:6px 8px;display:flex;flex-direction:column;gap:3px}
+.al{font-family:var(--mono);font-size:8px;line-height:1.45;padding:3px 7px;border-radius:2px;border-left:2px solid transparent}
+.al.crit{background:rgba(255,58,92,.09);border-color:var(--red);color:#ff8fa3}
+.al.warn{background:rgba(255,176,32,.07);border-color:var(--amb);color:#ffd54f}
+.al.ok{background:rgba(0,222,112,.07);border-color:var(--grn);color:var(--grn)}
+
+/* Phase bar */
+#phase-bar{padding:7px 10px;border-bottom:1px solid var(--bdr);flex-shrink:0;display:none}
+#phase-bar.show{display:block}
+#phase-lbl{font-family:var(--mono);font-size:7px;letter-spacing:1.5px;color:var(--ink3);margin-bottom:4px;text-transform:uppercase}
+#phase-dots{display:flex;gap:4px}
+.ph-dot{width:18px;height:4px;border-radius:2px;background:rgba(255,255,255,.07);border:1px solid var(--bdr2);transition:all .3s}
+.ph-dot.done{background:var(--crisis-color,var(--amb));border-color:transparent}
+.ph-dot.active{background:var(--crisis-color,var(--amb));border-color:transparent;animation:phPulse 1.2s ease infinite}
+
+/* ── CHAT BLOCK ── */
+#chat-block{display:flex;flex-direction:column;flex:1;min-height:0}
+#chat-body{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:5px;scrollbar-width:thin;scrollbar-color:var(--bdr2) transparent;min-height:120px}
+#chat-body::-webkit-scrollbar{width:2px}
+#chat-body::-webkit-scrollbar-thumb{background:var(--bdr2)}
+
+/* Chat messages */
+.msg{animation:fadein .3s ease}
+.msg-sys{font-family:var(--mono);font-size:8px;color:var(--ink3);text-align:center;padding:4px 0;letter-spacing:.5px;border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);margin:4px 0}
+.msg-sys.alert{color:var(--red);border-color:rgba(255,58,92,.2)}
+.msg-who{font-family:var(--mono);font-size:7px;color:var(--ink3);margin-bottom:2px;letter-spacing:.3px;display:flex;align-items:center;gap:5px}
+.msg-src{font-size:6.5px;padding:1px 4px;border-radius:2px;background:rgba(255,255,255,.06);color:var(--ink3)}
+.msg-src.twitter{background:rgba(29,155,240,.12);color:#1d9bf0}
+.msg-src.radio{background:rgba(255,176,32,.12);color:var(--amb)}
+.msg-src.news{background:rgba(248,113,113,.12);color:#f87171}
+.msg-src.moradores{background:rgba(0,222,112,.10);color:var(--grn)}
+.msg-src.oficial{background:rgba(0,212,240,.10);color:var(--cyan)}
+.msg-bubble{background:rgba(255,255,255,.04);border:1px solid var(--bdr2);border-radius:2px 6px 6px 6px;padding:6px 8px;font-size:9px;color:var(--ink);line-height:1.5}
+.msg-time{font-family:var(--mono);font-size:7px;color:var(--ink3);margin-top:2px;text-align:right}
+.msg-typing .msg-bubble{color:var(--ink3);font-style:italic}
+/* question style */
+.msg.question .msg-bubble{background:rgba(0,212,240,.06);border-color:rgba(0,212,240,.18);color:var(--cyan);font-style:italic}
+
+/* ── POPUP ── */
+.maplibregl-popup .maplibregl-popup-content{background:var(--bg2)!important;border:1px solid var(--bdr2)!important;border-radius:3px!important;padding:0!important;box-shadow:0 8px 40px rgba(0,0,0,.85)!important;font-family:var(--sans)!important;min-width:220px;max-width:280px}
+.maplibregl-popup-tip{display:none!important}
+.maplibregl-popup-close-button{color:var(--ink2)!important;font-size:14px!important;padding:5px 9px!important;background:transparent!important}
+.pop{padding:10px 12px}
+.pop-hd{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px}
+.pop-ic{font-size:17px;flex-shrink:0;line-height:1.2}
+.pop-name{font-size:11.5px;font-weight:600;color:var(--ink);line-height:1.3}
+.pop-sub{font-size:8.5px;color:var(--ink3);margin-top:1px}
+.pop-sev{margin-left:auto;flex-shrink:0;font-family:var(--mono);font-size:7.5px;font-weight:600;letter-spacing:1px;padding:2px 6px;border-radius:2px}
+.ps-ok{background:rgba(0,212,240,.1);color:var(--cyan)}
+.ps-warn{background:rgba(255,176,32,.13);color:var(--amb)}
+.ps-crit{background:rgba(255,58,92,.14);color:var(--red)}
+.pop-reports{display:flex;flex-direction:column;gap:5px;margin-bottom:6px}
+.pop-report{font-size:8.5px;line-height:1.5;padding:5px 7px;background:rgba(0,0,0,.3);border-radius:2px;border-left:2px solid var(--bdr2);color:var(--ink2)}
+.pop-report.crit{border-color:var(--red)}
+.pop-report.warn{border-color:var(--amb)}
+.pop-report .pr-src{font-family:var(--mono);font-size:6.5px;color:var(--ink3);margin-top:2px}
+.pop-ft{font-family:var(--mono);font-size:7px;letter-spacing:1px;color:var(--ink3);border-top:1px solid var(--bdr);padding-top:4px;margin-top:2px}
+
+/* map controls */
+.maplibregl-ctrl-bottom-left{bottom:10px!important;left:10px!important}
+.maplibregl-ctrl-bottom-right{bottom:10px!important;right:10px!important}
+.maplibregl-ctrl-group{background:var(--bg2)!important;border:1px solid var(--bdr2)!important;box-shadow:none!important}
+.maplibregl-ctrl-group button{background:var(--bg2)!important;color:var(--ink2)!important}
+.maplibregl-ctrl-group button:hover{background:var(--bg3)!important;color:var(--cyan)!important}
+.maplibregl-ctrl-attrib{background:rgba(7,17,28,.85)!important;color:var(--ink3)!important;font-size:8px!important}
+.maplibregl-ctrl-attrib a{color:var(--ink3)!important}
+
+/* ── ANIMATIONS ── */
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes phPulse{0%,100%{opacity:1}50%{opacity:.45}}
+</style>
+</head>
+<body>
+
+<header id="hdr">
+  <div id="brand">URBAN<em>LENS</em></div>
+  <span class="h-sep" style="color:var(--bdr2);font-size:16px">|</span>
+  <span id="h-city">SÃO PAULO · RMSP</span>
+  <div id="crisis-badge">— SITUAÇÃO EM CURSO</div>
+  <div id="h-mid">
+    <span>RELATOS <span class="h-val" id="anc-ct">—</span></span>
+    <span>CAMADAS <span class="h-val" id="act-ct">0</span></span>
+    <div id="h-status">CONECTANDO</div>
+    <span id="clock">--:--:--</span>
+  </div>
+</header>
+
+<div id="shell">
+  <!-- LEFT: layers + zoneamento -->
+  <aside id="panel">
+
+    <div id="inv-hint">
+      <p><strong>Como jogar:</strong> explore as camadas e observe os relatos que surgem no mapa. Cada ponto pulsa mais forte quando a situação piora. O que está acontecendo? O que poderia ser feito?</p>
+    </div>
+
+    <div class="sec">
+      <div class="sec-hd" onclick="toggleSec(this)"><span class="sdot" style="color:var(--cyan)"></span>CAMADAS DE DADOS <span style="margin-left:auto;font-size:6.5px;opacity:.4;text-transform:lowercase;letter-spacing:0">toggle</span><span class="chev">▾</span></div>
+      <div class="sec-body">
+        <div id="layer-list"></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-hd" onclick="toggleSec(this)"><span class="sdot" style="color:var(--amb)"></span>ZONEAMENTO<span class="chev">▾</span></div>
+      <div class="sec-body">
+        <div class="z-btns">
+          <button class="z-btn" data-zone="none" style="--zc:#7a97b0">Limpar</button>
+          <button class="z-btn" data-zone="central" style="--zc:#ff6b35">Central</button>
+          <button class="z-btn" data-zone="periferia" style="--zc:#a855f7">Periferia</button>
+          <button class="z-btn" data-zone="comercial" style="--zc:#38bdf8">Comércio</button>
+          <button class="z-btn" data-zone="industrial" style="--zc:#9ca3af">Industrial</button>
+          <button class="z-btn" data-zone="residencial" style="--zc:#22c55e">Residencial</button>
+          <button class="z-btn" data-zone="desigualdade" style="--zc:#f43f5e">Desigualdade</button>
+        </div>
+        <div id="z-legend"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CENTER: map only (no banners) -->
+  <main id="map-wrap">
+    <div id="map"></div>
+    <div id="map-loader"><div class="ring"></div><span style="font-family:var(--mono);font-size:9px;letter-spacing:3px;color:var(--ink3)">CARREGANDO MAPA</span></div>
+  </main>
+
+  <!-- RIGHT: alerts + chat (single scrollable column) -->
+  <aside id="right-col">
+    <div id="right-col-hdr">
+      <span id="right-col-title">CIDADE EM TEMPO REAL</span>
+      <span id="right-col-lbl">MONIT.</span>
+      <button id="right-toggle-btn" title="Recolher">›</button>
+    </div>
+
+    <div id="right-scroll">
+      <!-- ALERTS block -->
+      <div id="alerts-block">
+        <div class="rblock-hd" onclick="toggleRBlock(this)">
+          <span class="sdot" style="color:var(--red);animation:phPulse 1.5s ease infinite"></span>
+          INDICADORES
+          <span class="chev">▾</span>
+        </div>
+        <div class="rblock-body" id="alerts"></div>
+        <div id="phase-bar">
+          <div id="phase-lbl">INTENSIDADE</div>
+          <div id="phase-dots">
+            <div class="ph-dot" id="pd0"></div>
+            <div class="ph-dot" id="pd1"></div>
+            <div class="ph-dot" id="pd2"></div>
+            <div class="ph-dot" id="pd3"></div>
+            <div class="ph-dot" id="pd4"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHAT block -->
+      <div id="chat-block">
+        <div class="rblock-hd" onclick="toggleRBlock(this)">
+          <span class="sdot" style="color:var(--cyan)"></span>
+          RELATOS &amp; SINAIS
+          <span class="chev">▾</span>
+        </div>
+        <div id="chat-body">
+          <div class="msg-sys">aguardando sinais da cidade…</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════════
+const PHASE_DURATION = 120000; // 2 min por fase — demo: 20000
+const TICK_INTERVAL  = 30000;
+const SIGNAL_INTERVAL = 55000; // novo ponto aparece a cada ~1 min
+
+// ═══════════════════════════════════════════════════════════════
+// UI helpers
+// ═══════════════════════════════════════════════════════════════
+function toggleSec(hd){
+  hd.classList.toggle('collapsed');
+  const body=hd.nextElementSibling;
+  if(hd.classList.contains('collapsed')){body.style.maxHeight='0';}
+  else{body.style.maxHeight=body.scrollHeight+'px';}
+}
+function toggleRBlock(hd){
+  hd.classList.toggle('collapsed');
+  const body=hd.nextElementSibling;
+  if(hd.classList.contains('collapsed')){body.style.maxHeight='0';body.style.overflow='hidden';}
+  else{body.style.maxHeight='';body.style.overflow='';}
+}
+document.getElementById('right-toggle-btn').addEventListener('click',()=>{
+  document.getElementById('shell').classList.toggle('right-collapsed');
+});
+
+// ═══════════════════════════════════════════════════════════════
+// CAMADAS — 10 tipos
+// ═══════════════════════════════════════════════════════════════
+const LAYERS=[
+  {id:'temperatura',nome:'Temperatura',   icon:'🌡️',color:'#ff6b35',stat:s=>`${s.temperatura.media.toFixed(1)}°C · ilha +${s.temperatura.ilha_calor.toFixed(1)}°C`,        fonte:'INMET · CETESB · IAG/USP'},
+  {id:'poluicao',   nome:'Poluição',      icon:'☁️', color:'#94a3b8',stat:s=>`NO₂ ${s.poluicao.no2.toFixed(0)} µg/m³ · O₃ ${s.poluicao.ozone} µg/m³`,                   fonte:'CETESB QUALAR · IBAMA'},
+  {id:'ar',         nome:'Qualid. do Ar', icon:'💨',color:'#f97316',stat:s=>`PM₂.₅ ${s.ar.pm25.toFixed(1)} µg/m³ · IQA ${s.ar.iqa}`,                                     fonte:'CETESB QUALAR'},
+  {id:'agua',       nome:'Água',          icon:'💧',color:'#38bdf8',stat:s=>`Turbidez ${s.agua.turbidez.toFixed(1)} NTU · ${s.agua.balneab}`,                              fonte:'SABESP · ANA · DAEE'},
+  {id:'transito',   nome:'Trânsito',      icon:'🚦',color:'#f43f5e',stat:s=>`Congest. ${s.transito.congestionamento}% · ${s.transito.ruido} dB`,                          fonte:'CET-SP · Waze'},
+  {id:'energia',    nome:'Energia',       icon:'⚡',color:'#fbbf24',stat:s=>`Bandeira ${s.energia.banda} · Térmica ${s.energia.termica}%`,                                 fonte:'ANEEL · ONS · CCEE'},
+  {id:'lixo',       nome:'Lixo',          icon:'🗑️',color:'#a78bfa',stat:s=>`${s.lixo.pts_irreg} pts irreg. · Aterro ${s.lixo.cap_aterro}%`,                              fonte:'AMLURB · LOGA'},
+  {id:'vegetacao',  nome:'Vegetação',     icon:'🌿',color:'#22c55e',stat:s=>`Cobertura ${s.vegetacao.cobertura.toFixed(1)}% · Desmat. ${s.vegetacao.desmat_mensal.toFixed(1)} ha/mês`,fonte:'PMSP · SMA · MapBiomas'},
+  {id:'solo',       nome:'Solo',          icon:'🪨',color:'#d97706',stat:s=>`Agrotóx. ${s.solo.agrotox.toFixed(1)} kg/ha · Erosão ${s.solo.erosao}%`,                     fonte:'EMBRAPA · INPE · IPT'},
+  {id:'saude',      nome:'Saúde Pública', icon:'🏥',color:'#f472b6',stat:s=>`Resp. ${s.saude.respirat}/100k · Dengue ${s.saude.dengue}/100k`,                             fonte:'CVS · SMS · DataSUS'},
+];
+const LAYER_MAP=Object.fromEntries(LAYERS.map(l=>[l.id,l]));
+
+// ═══════════════════════════════════════════════════════════════
+// ÂNCORAS — 70 pontos reais RMSP
+// Cada âncora tem agora um array de relatos (reports) com fonte
+// ═══════════════════════════════════════════════════════════════
+const ANCHORS=[
+// TEMPERATURA
+{id:'t01',layer:'temperatura',lat:-23.5505,lng:-46.6333,nome:'Centro — Ilha de Calor',bairro:'Sé',
+ value:s=>s.temperatura.media+s.temperatura.ilha_calor,severity:s=>s.temperatura.media>31?'crit':s.temperatura.media>28?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Moro na Liberdade há 20 anos e nunca senti tanto calor no Centro como essa semana. O asfalto estava quase derretendo ontem.`},
+   {src:'twitter',text:`#SPCalor o termômetro no Centro bateu ${(s.temperatura.media+s.temperatura.ilha_calor).toFixed(0)}°C às 14h. Menos árvores, mais cimento — simples assim.`},
+   {src:'radio',text:`Rádio CBN: ilha de calor no Centro Histórico ${(s.temperatura.media+s.temperatura.ilha_calor).toFixed(1)}°C acima das áreas verdes mais próximas.`},
+ ]},
+{id:'t02',layer:'temperatura',lat:-23.6640,lng:-46.7793,nome:'Capão Redondo',bairro:'Capão Redondo',
+ value:s=>s.temperatura.media+s.temperatura.ilha_calor*1.4,severity:s=>s.temperatura.media>30?'crit':s.temperatura.media>27?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Aqui no Capão a gente não tem praça arborizada perto. As crianças ficam sem onde brincar quando bate ${(s.temperatura.media+s.temperatura.ilha_calor*1.4).toFixed(0)}°C.`},
+   {src:'twitter',text:`${(s.temperatura.media+s.temperatura.ilha_calor*1.4).toFixed(1)}°C no Capão Redondo agora. Parece que a cidade esqueceu que a gente existe por aqui.`},
+ ]},
+{id:'t03',layer:'temperatura',lat:-23.5874,lng:-46.6576,nome:'Ibirapuera — Resfriamento',bairro:'Paraíso',
+ value:s=>s.temperatura.media-2.1,severity:()=>'ok',
+ reports:s=>[
+   {src:'moradores',text:`No Ibirapuera dá pra notar a diferença na temperatura assim que você entra no parque. Virou refúgio pra quem não tem ar-condicionado.`},
+   {src:'news',text:`G1 SP: pesquisadores da USP confirmam que parques urbanos reduzem temperatura local em até ${(2.1+Math.random()).toFixed(1)}°C.`},
+ ]},
+{id:'t04',layer:'temperatura',lat:-23.4312,lng:-46.7123,nome:'Brasilândia',bairro:'Brasilândia',
+ value:s=>s.temperatura.media+s.temperatura.ilha_calor*1.6,severity:s=>s.temperatura.media>29?'crit':s.temperatura.media>26?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Brasilândia tá ${(s.temperatura.media+s.temperatura.ilha_calor*1.6).toFixed(0)}°C. Minha mãe passou mal ontem. UBS lotada de idosos com pressão alta por causa do calor.`},
+   {src:'radio',text:`Rádio 9 de Julho: periferia norte registra picos de calor até 7°C maiores que bairros ricos a 10km de distância.`},
+ ]},
+{id:'t05',layer:'temperatura',lat:-23.5610,lng:-46.6560,nome:'Av. Paulista',bairro:'Bela Vista',
+ value:s=>s.temperatura.media+s.temperatura.ilha_calor,severity:s=>s.temperatura.media>29?'crit':s.temperatura.media>26?'warn':'ok',
+ reports:s=>[
+   {src:'twitter',text:`Atravessando a Paulista às ${(new Date().getHours())}h com ${(s.temperatura.media+s.temperatura.ilha_calor).toFixed(0)}°C. Concreto de todo lado, sol a pino. Onde estão as árvores?`},
+ ]},
+{id:'t06',layer:'temperatura',lat:-23.5127,lng:-46.4788,nome:'Itaquera / Leste',bairro:'Itaquera',
+ value:s=>s.temperatura.media+s.temperatura.ilha_calor*1.3,severity:s=>s.temperatura.media>29?'crit':s.temperatura.media>27?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Zona Leste esquentou demais esse ano. A gente tem que trabalhar com esse calor todo, cheio de lona e telha. Quem ajuda?`},
+   {src:'twitter',text:`Escola em Itaquera suspendeu aula de educação física: ${(s.temperatura.media+s.temperatura.ilha_calor*1.3).toFixed(0)}°C às 9h da manhã. Isso é normal?`},
+ ]},
+// POLUIÇÃO
+{id:'p01',layer:'poluicao',lat:-23.6089,lng:-46.6945,nome:'Polo Industrial ABC',bairro:'Santo André',
+ value:s=>s.poluicao.no2*1.9,severity:s=>s.poluicao.no2>70?'crit':s.poluicao.no2>50?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Moro perto do polo industrial do ABC há 15 anos. Hoje acordei com cheiro forte de produto químico. Liguei pra Prefeitura mas ninguém atendeu.`},
+   {src:'news',text:`Diário do Grande ABC: NO₂ no ABC marcou ${(s.poluicao.no2*1.9).toFixed(0)} µg/m³ — quase o dobro do limite recomendado pela OMS.`},
+   {src:'twitter',text:`O céu aqui perto das fábricas do ABC tá meio amarelado hoje. Alguém mais percebeu? #ABCPoluído`},
+ ]},
+{id:'p02',layer:'poluicao',lat:-23.4658,lng:-46.4765,nome:'Polo Industrial Guarulhos',bairro:'Guarulhos',
+ value:s=>s.poluicao.no2*1.6,severity:s=>s.poluicao.no2>65?'crit':s.poluicao.no2>45?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Em Guarulhos perto do polo industrial a fumaça sobe de noite também. Criança com asma aqui em casa tá piorando essa semana.`},
+   {src:'radio',text:`Rádio Bandeirantes: estação de Guarulhos registra NO₂ de ${(s.poluicao.no2*1.6).toFixed(0)} µg/m³ — nível de atenção.`},
+ ]},
+{id:'p03',layer:'poluicao',lat:-23.5680,lng:-46.7020,nome:'Rebouças / Marginal',bairro:'Pinheiros',
+ value:s=>s.poluicao.co*2.3,severity:s=>s.poluicao.co>2.5?'crit':s.poluicao.co>1.8?'warn':'ok',
+ reports:s=>[
+   {src:'twitter',text:`Ciclista aqui na marginal do Pinheiros. O ar tá pesado hoje. Dá pra sentir o gosto da fumaça dos caminhões. #mobilidadeSP`},
+   {src:'moradores',text:`Minha filha passou na Rebouças de moto e chegou em casa com dor de cabeça. Isso não é normal.`},
+ ]},
+{id:'p04',layer:'poluicao',lat:-23.6045,lng:-46.5108,nome:'Termelétrica — Emissões',bairro:'ABC',
+ value:s=>s.poluicao.no2*2.1,severity:s=>s.energia.termica>25?'crit':s.energia.termica>18?'warn':'ok',
+ reports:s=>[
+   {src:'news',text:`Repórter Brasil: com bandeira ${s.energia.banda}, termelétrica do ABC opera a plena carga — emissões de NO₂ subiram ${Math.round(s.energia.termica*3)}% esta semana.`},
+   {src:'moradores',text:`A fumaça da termelétrica fica baixa quando tem inversão térmica. Fica um cheiro de queimado em tudo.`},
+ ]},
+{id:'p05',layer:'poluicao',lat:-23.5228,lng:-46.7921,nome:'Industrial Osasco',bairro:'Osasco',
+ value:s=>s.poluicao.no2*1.4,severity:s=>s.poluicao.no2>60?'crit':s.poluicao.no2>40?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Osasco industrial: fumaça preta hoje de manhã. Fotografei e mandei pro vereador. Sem resposta ainda.`},
+ ]},
+// AR
+{id:'ar01',layer:'ar',lat:-23.5489,lng:-46.6388,nome:'CETESB Pinheiros',bairro:'Pinheiros',
+ value:s=>s.ar.pm25*1.3,severity:s=>s.ar.pm25>35?'crit':s.ar.pm25>20?'warn':'ok',
+ reports:s=>[
+   {src:'oficial',text:`CETESB: estação Pinheiros registra PM₂.₅ de ${(s.ar.pm25*1.3).toFixed(1)} µg/m³. ${s.ar.iqa>100?'Grupo sensível deve evitar atividades ao ar livre.':'Qualidade do ar aceitável.'}`},
+   {src:'twitter',text:`App da CETESB marcando IQA ${s.ar.iqa} em Pinheiros. ${s.ar.iqa>80?'Mascarinha no rosto, gente! 😷':'Por ora tá ok.'}`},
+ ]},
+{id:'ar02',layer:'ar',lat:-23.5505,lng:-46.6333,nome:'Est. Dom Pedro II',bairro:'Centro',
+ value:s=>s.ar.pm25*0.95,severity:s=>s.ar.pm25>35?'crit':s.ar.pm25>20?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Aqui no Centro Histórico a fumaça dos ônibus velhos é absurda. Dor de cabeça todo dia pra quem trabalha no semáforo.`},
+   {src:'radio',text:`FM O Dia: partículas finas no ar do Centro chegaram a ${(s.ar.pm25*0.95).toFixed(1)} µg/m³ — manter janelas fechadas em dias sem vento.`},
+ ]},
+{id:'ar03',layer:'ar',lat:-23.5042,lng:-46.6273,nome:'Est. Santana',bairro:'Santana',
+ value:s=>s.ar.pm25*1.1,severity:s=>s.ar.pm25>35?'crit':s.ar.pm25>20?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Em Santana perto da estação de metrô o ar é horrível nas horas de pico. Olho vermelho, tosse. Já virou rotina.`},
+ ]},
+{id:'ar04',layer:'ar',lat:-23.6201,lng:-46.7546,nome:'Est. Campo Limpo',bairro:'Campo Limpo',
+ value:s=>s.ar.pm25*1.45,severity:s=>s.ar.pm25>30?'crit':s.ar.pm25>18?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Campo Limpo tem muito ônibus diesel antigo. O ar pesado aqui combinado com o calor tá deixando os idosos doentes.`},
+   {src:'news',text:`UOL Notícias: Campo Limpo concentra partículas finas ${Math.round((s.ar.pm25*1.45)/s.ar.pm25*100-100)}% acima da média da cidade.`},
+   {src:'twitter',text:`Aqui no Campo Limpo tem criança faltando aula por problema respiratório essa semana. Alguém investigando isso?`},
+ ]},
+{id:'ar05',layer:'ar',lat:-23.5762,lng:-46.6218,nome:'Radial Leste',bairro:'Belém',
+ value:s=>s.ar.pm25*1.65,severity:s=>s.ar.pm25>28?'crit':s.ar.pm25>16?'warn':'ok',
+ reports:s=>[
+   {src:'twitter',text:`Radial Leste congestionada + ar parado = sensação de sufocar. PM2.5 a ${(s.ar.pm25*1.65).toFixed(1)} na minha medição caseira.`},
+ ]},
+{id:'ar06',layer:'ar',lat:-23.6089,lng:-46.6945,nome:'Industrial Santo André',bairro:'ABC',
+ value:s=>s.ar.pm25*1.9,severity:s=>s.ar.pm25>22?'crit':s.ar.pm25>14?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Santo André, perto do polo: a fuligem na janela de casa é todo dia. Quem tem filho pequeno tá com medo.`},
+   {src:'oficial',text:`CETESB Santo André: PM₂.₅ marcou ${(s.ar.pm25*1.9).toFixed(1)} µg/m³. Atenção especial para grupos sensíveis.`},
+ ]},
+// ÁGUA
+{id:'ag01',layer:'agua',lat:-23.5235,lng:-46.6247,nome:'Rio Tietê — Penha',bairro:'Penha',
+ value:s=>s.agua.turbidez*2.2,severity:s=>s.agua.turbidez>10?'crit':s.agua.turbidez>5?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Pesquei no Tietê quando criança. Hoje em dia não dá nem de chegar perto — o cheiro tá insuportável nessa época.`},
+   {src:'twitter',text:`Passando pela Penha, o Tietê tá com a cor de café com leite. Turbidez ${(s.agua.turbidez*2.2).toFixed(0)} NTU segundo os sensores. É isso que irriga parte da cidade.`},
+   {src:'radio',text:`Band News: monitoramento do Tietê na Penha — ${s.agua.balneab==='IMPRÓPRIA'?'água imprópria para contato':'nível elevado de turbidez'}. Rio recebe esgoto de 14 municípios.`},
+ ]},
+{id:'ag02',layer:'agua',lat:-23.6434,lng:-46.5291,nome:'Rio Tamanduateí — ABC',bairro:'Santo André',
+ value:s=>s.agua.turbidez*3.3,severity:s=>s.agua.turbidez>8?'crit':s.agua.turbidez>4?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`O Tamanduateí aqui no ABC tem esgoto direto. Criança que cai na enchente volta doente. É precário demais.`},
+   {src:'news',text:`ABC ao Vivo: amostras do Tamanduateí indicam turbidez ${(s.agua.turbidez*3.3).toFixed(0)} NTU — água ${s.agua.balneab.toLowerCase()} para uso.`},
+ ]},
+{id:'ag03',layer:'agua',lat:-23.7308,lng:-46.6583,nome:'Represa Guarapiranga',bairro:'Parelheiros',
+ value:s=>s.agua.turbidez*0.6,severity:s=>s.agua.turbidez>6?'crit':s.agua.turbidez>3?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Guarapiranga tá baixa. Moro há anos em Parelheiros e nunca vi a margem tão seca assim. Preocupante.`},
+   {src:'oficial',text:`SABESP: nível da Guarapiranga em ${Math.round(80-s.agua.turbidez*3)}%. Turbidez ${(s.agua.turbidez*0.6).toFixed(1)} NTU — manancial em monitoramento.`},
+   {src:'twitter',text:`Fui pescar na Guarapiranga no final de semana. A margem recuou uns 20 metros desde o ano passado. Isso tá errado.`},
+ ]},
+{id:'ag04',layer:'agua',lat:-23.5400,lng:-46.6800,nome:'Rio Pinheiros',bairro:'Pinheiros',
+ value:s=>s.agua.turbidez*4.0,severity:s=>s.agua.turbidez>7?'crit':s.agua.turbidez>3.5?'warn':'ok',
+ reports:s=>[
+   {src:'twitter',text:`O Pinheiros está ${s.agua.turbidez>7?'preto de novo':'com espuma hoje'}. Todos os anos a Prefeitura promete despoluição. Estamos em ${new Date().getFullYear()}.`},
+   {src:'moradores',text:`Moro na marginal e o cheiro à noite é forte. Não consigo dormir de janela aberta mesmo com o calor.`},
+ ]},
+{id:'ag05',layer:'agua',lat:-23.5605,lng:-46.6270,nome:'Córrego Glicério',bairro:'Glicério',
+ value:s=>s.agua.turbidez*5.5,severity:s=>s.agua.turbidez>5?'crit':s.agua.turbidez>2.5?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`No Glicério o córrego vira esgoto nas chuvas. Tudo transborda aqui embaixo do viaduto. É humilhante.`},
+ ]},
+{id:'ag06',layer:'agua',lat:-23.4910,lng:-46.8710,nome:'Represa Pirapora',bairro:'Pirapora',
+ value:s=>s.agua.turbidez*0.4,severity:s=>s.agua.turbidez>5?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`A Pirapora ainda tá razoável. Mas o loteamento irregular que tá crescendo na margem me preocupa muito.`},
+ ]},
+// TRÂNSITO
+{id:'tr01',layer:'transito',lat:-23.5610,lng:-46.6560,nome:'Av. Paulista',bairro:'Bela Vista',
+ value:s=>s.transito.congestionamento*1.2,severity:s=>s.transito.congestionamento>75?'crit':s.transito.congestionamento>55?'warn':'ok',
+ reports:s=>[
+   {src:'twitter',text:`Paulista travada ${s.transito.congestionamento}% de congestionamento segundo o Waze. Saí de casa às 7h e cheguei no trabalho às 9h30.`},
+   {src:'radio',text:`CBN SP: Av. Paulista com retenção intensa nos dois sentidos. Metrô como alternativa.`},
+   {src:'moradores',text:`Fui de bicicleta hoje pela Paulista. Passar entre os carros parados com essa fumaça é arriscado. Ciclovia cheia de gente igual a mim fugindo do ônibus.`},
+ ]},
+{id:'tr02',layer:'transito',lat:-23.5327,lng:-46.7614,nome:'Marginal Pinheiros',bairro:'Butantã',
+ value:s=>s.transito.congestionamento*1.5,severity:s=>s.transito.congestionamento>65?'crit':s.transito.congestionamento>45?'warn':'ok',
+ reports:s=>[
+   {src:'twitter',text:`Marginal Pinheiros: ${s.transito.congestionamento}% congestionada das expressas. Poluição ${s.transito.congestionamento>70?'absurda':'alta'} aqui nos 20km de extensão.`},
+   {src:'radio',text:`Rádio Jovem Pan: Marginal Pinheiros expressa travada. Acidente na altura da Ponte do Jaguaré prende faixa da esquerda.`},
+ ]},
+{id:'tr03',layer:'transito',lat:-23.5121,lng:-46.6380,nome:'Marginal Tietê',bairro:'Santana',
+ value:s=>s.transito.congestionamento*1.8,severity:s=>s.transito.congestionamento>60?'crit':s.transito.congestionamento>40?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Marginal Tietê é um pesadelo. Motorista de app aqui: 3 horas parado ontem. Quanto CO₂ jogado no ar por isso?`},
+ ]},
+{id:'tr04',layer:'transito',lat:-23.5241,lng:-46.4812,nome:'Radial Leste',bairro:'Tatuapé',
+ value:s=>s.transito.congestionamento*1.3,severity:s=>s.transito.congestionamento>70?'crit':s.transito.congestionamento>50?'warn':'ok',
+ reports:s=>[
+   {src:'twitter',text:`Radial Leste parada há 2h. Sigo o drone da CET ao vivo. Parece tabuleiro de xadrez com todos os peões parados.`},
+ ]},
+{id:'tr05',layer:'transito',lat:-23.5500,lng:-46.6300,nome:'Centro Histórico',bairro:'República',
+ value:s=>s.transito.congestionamento*1.4,severity:s=>s.transito.congestionamento>70?'crit':s.transito.congestionamento>50?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Entregador aqui no centro. Cada vez mais difícil pedalar. Ônibus parado, carro na ciclovia, passageiro abrindo porta. Caos.`},
+ ]},
+// ENERGIA
+{id:'en01',layer:'energia',lat:-23.5228,lng:-46.7921,nome:'SE Osasco',bairro:'Osasco',
+ value:s=>s.energia.termica,severity:s=>s.energia.banda==='VERMELHA'?'crit':s.energia.banda==='AMARELA'?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Oscilação de energia aqui em Osasco. Geladeira já queimou duas vezes esse mês. Enel não indeniza ninguém.`},
+   {src:'twitter',text:`Bandeira ${s.energia.banda} e minha conta de luz subiu ${s.energia.banda==='VERMELHA'?'40%':'20%'} esse mês. Isso é absurdo. #ContaDeLuz`},
+ ]},
+{id:'en02',layer:'energia',lat:-23.6045,lng:-46.5108,nome:'Termelétrica ABC',bairro:'ABC',
+ value:s=>s.energia.termica,severity:s=>s.energia.termica>25?'crit':s.energia.termica>20?'warn':'ok',
+ reports:s=>[
+   {src:'news',text:`Estadão: uso de termelétrica sobe para ${s.energia.termica}% da matriz — custo ambiental e financeiro pesam na conta de todos.`},
+ ]},
+{id:'en03',layer:'energia',lat:-23.4912,lng:-46.8712,nome:'PCH Pirapora',bairro:'Pirapora',
+ value:s=>s.energia.hidro,severity:s=>s.energia.hidro<40?'crit':s.energia.hidro<55?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`O nível da represa tá baixo, a pequena central aqui quase não tá girando. Energia da região depende de longe agora.`},
+ ]},
+{id:'en04',layer:'energia',lat:-23.5680,lng:-46.7280,nome:'Parque Solar Morumbi',bairro:'Morumbi',
+ value:s=>s.energia.solar,severity:()=>'ok',
+ reports:s=>[
+   {src:'twitter',text:`Painel solar do condomínio aqui no Morumbi gerando ${s.energia.solar}% do consumo. Pouca gente sabe que isso é possível em SP.`},
+ ]},
+{id:'en05',layer:'energia',lat:-23.5480,lng:-46.6380,nome:'SE Centro Expandido',bairro:'Centro',
+ value:s=>s.energia.termica*1.2,severity:s=>s.energia.banda==='VERMELHA'?'crit':s.energia.banda==='AMARELA'?'warn':'ok',
+ reports:s=>[
+   {src:'oficial',text:`ANEEL: subestação Centro Expandido opera em pico de carga — bandeira ${s.energia.banda}. Economize energia nos horários de ponta.`},
+ ]},
+// LIXO
+{id:'li01',layer:'lixo',lat:-23.3650,lng:-46.7400,nome:'Aterro CTL Caieiras',bairro:'Caieiras',
+ value:s=>s.lixo.cap_aterro,severity:s=>s.lixo.cap_aterro>90?'crit':s.lixo.cap_aterro>80?'warn':'ok',
+ reports:s=>[
+   {src:'news',text:`Folha de S.Paulo: aterro de Caieiras com ${s.lixo.cap_aterro}% da capacidade. ${s.lixo.cap_aterro>90?'Previsão de fechamento em meses — SP sem plano B.':'Situação monitorada pela Prefeitura.'}`},
+   {src:'moradores',text:`Moro em Caieiras e o cheiro do aterro tá cada vez pior. Infiltração de chorume no rio Juqueri preocupa a vizinhança.`},
+ ]},
+{id:'li02',layer:'lixo',lat:-23.5127,lng:-46.4788,nome:'Descarte Irreg. Itaquera',bairro:'Itaquera',
+ value:s=>s.lixo.pts_irreg/30,severity:s=>s.lixo.pts_irreg>2000?'crit':s.lixo.pts_irreg>1800?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`${s.lixo.pts_irreg} pontos de descarte irregular na cidade e metade fica aqui na Leste. É revolta. Denuncio, retira, volta semana que vem.`},
+   {src:'twitter',text:`Itaquera: mais um monte de lixo jogado na calçada. Mosquito, rato, problema de saúde. Cadê a coleta? 📸`},
+ ]},
+{id:'li03',layer:'lixo',lat:-23.6891,lng:-46.7234,nome:'Descarte Irreg. Campo Limpo',bairro:'Campo Limpo',
+ value:s=>s.lixo.pts_irreg/35,severity:s=>s.lixo.pts_irreg>1900?'crit':s.lixo.pts_irreg>1700?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`No Campo Limpo tem um terreno abandonado que virou lixão a céu aberto. Todo mundo joga entulho. Crianças brincam perto disso.`},
+ ]},
+{id:'li04',layer:'lixo',lat:-23.4300,lng:-46.6950,nome:'Descarte Irreg. Brasilândia',bairro:'Brasilândia',
+ value:s=>s.lixo.pts_irreg/38,severity:s=>s.lixo.pts_irreg>1900?'crit':'warn',
+ reports:s=>[
+   {src:'twitter',text:`Brasilândia norte: córrego entupido de lixo. Na próxima chuva vai encher tudo de novo. Quando vai ter drenagem de verdade aqui?`},
+   {src:'radio',text:`Rádio Cultura: comunidades da zona norte acumulam 3x mais lixo irregular que bairros centrais — coleta mensal é insuficiente.`},
+ ]},
+{id:'li05',layer:'lixo',lat:-23.6400,lng:-46.5760,nome:'Aterro ABC',bairro:'São Bernardo',
+ value:s=>s.lixo.cap_aterro-12,severity:s=>s.lixo.cap_aterro>88?'crit':s.lixo.cap_aterro>75?'warn':'ok',
+ reports:s=>[
+   {src:'news',text:`ABC ao Vivo: aterro de São Bernardo com ${s.lixo.cap_aterro-12}% de ocupação. Municípios do ABC discutem aterro regional compartilhado.`},
+ ]},
+// VEGETAÇÃO
+{id:'vg01',layer:'vegetacao',lat:-23.3652,lng:-46.6578,nome:'P.E. Cantareira',bairro:'Mairiporã',
+ value:s=>s.vegetacao.desmat_mensal*1.8,severity:s=>s.vegetacao.desmat_mensal>14?'crit':s.vegetacao.desmat_mensal>9?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Sou guarda do Cantareira. ${s.vegetacao.desmat_mensal>12?'O desmatamento irregular voltou forte esse mês. Motosserra à noite.':'Patrulhamento mantendo a área controlada por ora.'}`},
+   {src:'news',text:`O Estado de S.Paulo: Cantareira perde ${s.vegetacao.desmat_mensal.toFixed(1)} ha/mês — floresta que abastece 9 milhões de paulistanos em risco.`},
+ ]},
+{id:'vg02',layer:'vegetacao',lat:-23.8500,lng:-46.7000,nome:'APA Capivari-Monos',bairro:'Parelheiros',
+ value:s=>s.vegetacao.desmat_mensal*1.6,severity:s=>s.vegetacao.desmat_mensal>14?'crit':s.vegetacao.desmat_mensal>9?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Aqui em Parelheiros a gente vê o mata-mata sendo derrubado todo final de semana. Ninguém fiscaliza.`},
+ ]},
+{id:'vg03',layer:'vegetacao',lat:-23.5874,lng:-46.6576,nome:'Parque Ibirapuera',bairro:'Paraíso',
+ value:s=>s.vegetacao.cobertura,severity:()=>'ok',
+ reports:s=>[
+   {src:'moradores',text:`Venho correr no Ibirapuera todo dia. Isso é raro — a maioria da cidade não tem parque perto de casa.`},
+   {src:'twitter',text:`Pesquisa da USP: moradores a mais de 1km de um parque têm 30% mais chance de desenvolver hipertensão. Ibirapuera serve pra poucos.`},
+ ]},
+{id:'vg04',layer:'vegetacao',lat:-23.4456,lng:-46.7723,nome:'P.E. Anhanguera',bairro:'Perus',
+ value:s=>s.vegetacao.cobertura*2.1,severity:s=>s.vegetacao.desmat_mensal>10?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Anhanguera é imenso mas a entrada é longe. Quem não tem carro não consegue acessar. Falta transporte público pra cá.`},
+ ]},
+{id:'vg05',layer:'vegetacao',lat:-23.7450,lng:-46.7120,nome:'APA Guarapiranga',bairro:'Grajaú',
+ value:s=>s.vegetacao.desmat_mensal*1.4,severity:s=>s.vegetacao.desmat_mensal>13?'crit':s.vegetacao.desmat_mensal>8?'warn':'ok',
+ reports:s=>[
+   {src:'news',text:`R7 SP: ocupação irregular avança sobre APA Guarapiranga — ${s.vegetacao.desmat_mensal.toFixed(1)} ha removidos no mês. Risco para captação de água.`},
+ ]},
+// SOLO
+{id:'so01',layer:'solo',lat:-23.6890,lng:-47.1201,nome:'Cinturão Verde — Cotia',bairro:'Cotia',
+ value:s=>s.solo.agrotox*1.8,severity:s=>s.solo.agrotox>20?'crit':s.solo.agrotox>14?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Sou agricultor em Cotia. O pessoal do cinturão verde usa cada vez mais agrotóxico. A horta orgânica virou minoria.`},
+   {src:'news',text:`Agência Pública: análise do solo em Cotia encontra ${(s.solo.agrotox*1.8).toFixed(1)} kg/ha de agrotóxico — acima do limite seguro para consumo humano.`},
+ ]},
+{id:'so02',layer:'solo',lat:-23.7450,lng:-46.7120,nome:'Parelheiros — Rural',bairro:'Parelheiros',
+ value:s=>s.solo.erosao,severity:s=>s.solo.erosao>30?'crit':s.solo.erosao>20?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Chuva em Parelheiros desce a terra junto. Minha horta tá sendo carregada. Solo fraco depois que cortaram a mata próxima.`},
+ ]},
+{id:'so03',layer:'solo',lat:-23.5480,lng:-46.6380,nome:'Centro — Impermeável',bairro:'Centro',
+ value:s=>s.solo.impermeavel*1.15,severity:s=>s.solo.impermeavel>85?'crit':s.solo.impermeavel>75?'warn':'ok',
+ reports:s=>[
+   {src:'twitter',text:`${Math.round(s.solo.impermeavel*1.15)}% do solo no centro é impermeável — chuva não infiltra, vira enchente. Por que ainda aprovamos mais asfalto?`},
+   {src:'news',text:`NEXO: pavimentação avança 0.8% ao ano em SP. Com solo ${Math.round(s.solo.impermeavel*1.15)}% impermeável, risco de enchente cresce proporcionalmente.`},
+ ]},
+// SAÚDE
+{id:'sa01',layer:'saude',lat:-23.5505,lng:-46.6706,nome:'Hospital das Clínicas',bairro:'Pinheiros',
+ value:s=>s.saude.respirat,severity:s=>s.saude.respirat>250?'crit':s.saude.respirat>180?'warn':'ok',
+ reports:s=>[
+   {src:'oficial',text:`HC-USP: internações respiratórias em ${s.saude.respirat}/100k hab. ${s.saude.respirat>250?'Capacidade dos leitos em alerta.':'Monitoramento contínuo.'}`},
+   {src:'moradores',text:`Meu pai foi internado no HC com pneumonia. Médico disse que ${s.saude.respirat>200?'cada vez mais jovens chegando com problema de pulmão relacionado ao ar de SP.':'a qualidade do ar piora os quadros crônicos.'}`},
+ ]},
+{id:'sa02',layer:'saude',lat:-23.5983,lng:-46.6390,nome:'H. São Paulo UNIFESP',bairro:'V. Clementino',
+ value:s=>s.saude.respirat*1.1,severity:s=>s.saude.respirat>230?'crit':s.saude.respirat>160?'warn':'ok',
+ reports:s=>[
+   {src:'news',text:`UNIFESP divulga estudo: crianças que moram perto de corredores de ônibus têm ${Math.round(s.saude.respirat/10)}% mais rinite e asma que a média.`},
+ ]},
+{id:'sa03',layer:'saude',lat:-23.6678,lng:-46.7480,nome:'UPA Campo Limpo',bairro:'Campo Limpo',
+ value:s=>s.saude.respirat*1.35,severity:s=>s.saude.respirat>200?'crit':s.saude.respirat>150?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`UPA do Campo Limpo cheia de criança com crise asmática essa semana. A mãe de uma colega de escola ficou 6 horas esperando atendimento.`},
+   {src:'twitter',text:`UPA Campo Limpo: fila do lado de fora. Respiratório e dengue lotando tudo. ${s.saude.respirat>250?'Situação crítica.':'Sistema no limite.'}`},
+ ]},
+{id:'sa04',layer:'saude',lat:-23.4986,lng:-46.4540,nome:'UPA Ermelino Matarazzo',bairro:'Ermelino',
+ value:s=>s.saude.dengue*1.8,severity:s=>s.saude.dengue>80?'crit':s.saude.dengue>50?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Dengue em Ermelino: ${Math.round(s.saude.dengue*1.8)} casos por 100k. Minha rua tem 3 casos confirmados essa semana.`},
+   {src:'radio',text:`Rádio Nacional AM: surto de dengue no Ermelino Matarazzo — UPA abriu ala emergencial. Agentes de saúde pedem reforço.`},
+ ]},
+{id:'sa05',layer:'saude',lat:-23.5329,lng:-46.7920,nome:'H. Regional Osasco',bairro:'Osasco',
+ value:s=>s.saude.respirat*0.9,severity:s=>s.saude.respirat>240?'crit':s.saude.respirat>180?'warn':'ok',
+ reports:s=>[
+   {src:'moradores',text:`Hospital de Osasco sempre cheio. A grande maioria é problema respiratório ou pele — relacionado ao ambiente, segundo os médicos.`},
+ ]},
+{id:'sa06',layer:'saude',lat:-23.6300,lng:-46.4700,nome:'UPA Sapopemba',bairro:'Sapopemba',
+ value:s=>s.saude.dengue*2.1,severity:s=>s.saude.dengue>70?'crit':s.saude.dengue>45?'warn':'ok',
+ reports:s=>[
+   {src:'twitter',text:`Sapopemba: dengue ${Math.round(s.saude.dengue*2.1)}/100k. Minha vizinha perdeu a veia duas vezes tentando colher sangue. Sistema sobrecarregado demais.`},
+   {src:'moradores',text:`Eliminei todos os focos de água parada na minha casa. Mas o terreno baldio da esquina tá cheio. Não adianta só eu cuidar.`},
+ ]},
+];
+const ANCHOR_MAP=Object.fromEntries(ANCHORS.map(a=>[a.id,a]));
+const ANCHORS_BY_LAYER=ANCHORS.reduce((acc,a)=>{(acc[a.layer]=acc[a.layer]||[]).push(a);return acc},{});
+
+// ═══════════════════════════════════════════════════════════════
+// ÁREAS VERDES — 16 pontos reais SP
+// ═══════════════════════════════════════════════════════════════
+const GREEN_AREAS=[
+  {id:'gv01',nome:'P.E. Cantareira',lat:-23.3652,lng:-46.6578,area_ha:7900},
+  {id:'gv02',nome:'APA Capivari-Monos',lat:-23.8500,lng:-46.7000,area_ha:10000},
+  {id:'gv03',nome:'APA Bororé-Colônia',lat:-23.8220,lng:-46.7020,area_ha:9280},
+  {id:'gv04',nome:'Represa Guarapiranga',lat:-23.7308,lng:-46.6583,area_ha:5900},
+  {id:'gv05',nome:'P.E. Anhanguera',lat:-23.4456,lng:-46.7723,area_ha:4990},
+  {id:'gv06',nome:'P.E. Fontes do Ipiranga',lat:-23.6437,lng:-46.6235,area_ha:526},
+  {id:'gv07',nome:'P.E. Ecológico Tietê',lat:-23.5080,lng:-46.3950,area_ha:1384},
+  {id:'gv08',nome:'P.E. Jaraguá',lat:-23.4590,lng:-46.7630,area_ha:492},
+  {id:'gv09',nome:'P.E. Alberto Löfgren',lat:-23.4600,lng:-46.6340,area_ha:146},
+  {id:'gv10',nome:'Parque Ibirapuera',lat:-23.5874,lng:-46.6576,area_ha:158},
+  {id:'gv11',nome:'Parque Villa-Lobos',lat:-23.5410,lng:-46.7290,area_ha:73},
+  {id:'gv12',nome:'Parque do Carmo',lat:-23.5630,lng:-46.4790,area_ha:150},
+  {id:'gv13',nome:'Parque Linear Araguaia',lat:-23.6320,lng:-46.7920,area_ha:120},
+  {id:'gv14',nome:'P.E. Serra do Mar',lat:-23.9400,lng:-46.3200,area_ha:32000},
+  {id:'gv15',nome:'Reserva Morro Grande',lat:-23.6700,lng:-47.0600,area_ha:10800},
+  {id:'gv16',nome:'APA Várzea do Tietê',lat:-23.5100,lng:-46.2500,area_ha:7800},
+];
+
+// ═══════════════════════════════════════════════════════════════
+// ZONEAMENTO
+// ═══════════════════════════════════════════════════════════════
+const ZONE_DATA={
+  central:[
+    {nome:'Centro Histórico',idh:0.81,coords:[[-46.655,-23.530],[-46.608,-23.530],[-46.608,-23.562],[-46.655,-23.562],[-46.655,-23.530]]},
+    {nome:'Centro Expandido',idh:0.78,coords:[[-46.745,-23.495],[-46.574,-23.495],[-46.525,-23.530],[-46.525,-23.645],[-46.623,-23.665],[-46.735,-23.645],[-46.765,-23.574],[-46.745,-23.495]]},
+  ],
+  periferia:[
+    {nome:'Zona Norte Periférica',idh:0.72,coords:[[-46.800,-23.355],[-46.440,-23.355],[-46.440,-23.495],[-46.574,-23.495],[-46.745,-23.495],[-46.800,-23.430],[-46.800,-23.355]]},
+    {nome:'Zona Leste Periférica',idh:0.68,coords:[[-46.574,-23.495],[-46.440,-23.495],[-46.375,-23.545],[-46.375,-23.645],[-46.445,-23.675],[-46.525,-23.645],[-46.525,-23.530],[-46.574,-23.495]]},
+    {nome:'Zona Sul Periférica',idh:0.64,coords:[[-46.845,-23.645],[-46.445,-23.645],[-46.445,-24.015],[-46.845,-24.015],[-46.845,-23.645]]},
+  ],
+  comercial:[
+    {nome:'Corredor Paulista / Faria Lima',idh:0.88,coords:[[-46.706,-23.550],[-46.620,-23.544],[-46.620,-23.578],[-46.706,-23.595],[-46.706,-23.550]]},
+    {nome:'Eixo Berrini / JK',idh:0.85,coords:[[-46.710,-23.590],[-46.680,-23.588],[-46.680,-23.612],[-46.710,-23.614],[-46.710,-23.590]]},
+  ],
+  industrial:[
+    {nome:'Cinturão Industrial ABC',idh:0.74,coords:[[-46.575,-23.625],[-46.438,-23.625],[-46.438,-23.758],[-46.522,-23.785],[-46.625,-23.755],[-46.645,-23.665],[-46.575,-23.625]]},
+    {nome:'Polo Industrial Guarulhos',idh:0.72,coords:[[-46.565,-23.368],[-46.428,-23.368],[-46.375,-23.432],[-46.440,-23.495],[-46.574,-23.495],[-46.565,-23.368]]},
+    {nome:'Industrial Osasco',idh:0.73,coords:[[-46.845,-23.495],[-46.745,-23.495],[-46.765,-23.574],[-46.845,-23.574],[-46.845,-23.495]]},
+  ],
+  residencial:[
+    {nome:'Pinheiros / Vila Madalena',idh:0.89,coords:[[-46.720,-23.555],[-46.668,-23.548],[-46.668,-23.578],[-46.720,-23.585],[-46.720,-23.555]]},
+    {nome:'Zona Norte Residencial',idh:0.76,coords:[[-46.645,-23.432],[-46.520,-23.432],[-46.520,-23.495],[-46.645,-23.495],[-46.645,-23.432]]},
+    {nome:'Zona Oeste — Butantã',idh:0.79,coords:[[-46.845,-23.495],[-46.745,-23.495],[-46.735,-23.645],[-46.845,-23.645],[-46.845,-23.495]]},
+  ],
+};
+const ZONE_COLORS={central:'#ff6b35',periferia:'#a855f7',comercial:'#38bdf8',industrial:'#9ca3af',residencial:'#22c55e'};
+
+// ═══════════════════════════════════════════════════════════════
+// 10 CRISES — chat com relatos humanos, sem banners
+// ═══════════════════════════════════════════════════════════════
+const CRISES=[
+{
+  id:'c01',nome:'Crise Hídrica dos Mananciais',color:'#38bdf8',
+  layers:['agua','energia','vegetacao','temperatura'],
+  phases:[
+    {severity:'warn',
+     chat:[
+       {src:'moradores',who:'Moradora · Parelheiros',msg:'Minha torneira saiu só um filete de água essa manhã. Ligaram pra dizer que tem rodízio. Mas não avisaram antes.',delay:0},
+       {src:'twitter',who:'@sp_agua_viva',msg:'Nível da Guarapiranga caiu 8% essa semana. Dá pra ver as pedras que ficavam embaixo da água. Assustador.',delay:5000},
+       {src:'oficial',who:'SABESP',msg:'Início de rodízio em 8 distritos da Zona Sul e Leste. Suspensão de 12h por dia. 800 mil moradores afetados.',delay:9000},
+     ],
+     mods:(s)=>{s.agua.turbidez=Math.max(s.agua.turbidez,6.5);s.energia.termica=Math.max(s.energia.termica,21);}
+    },
+    {severity:'warn',
+     chat:[
+       {src:'moradores',who:'Morador · Guaianases',msg:'3 dias sem água. Minha mãe não consegue tomar banho. O caminhão-pipa veio uma vez só essa semana.',delay:0},
+       {src:'radio',who:'CBN SP · Ao vivo',msg:'SABESP reduz abastecimento em 30%. Caminhões-pipa insuficientes — distribuição prioritária para hospitais e diálise.',delay:5000},
+       {src:'twitter',who:'@maedesapopemba',msg:'Fila no ponto de água grátis aqui em Sapopemba. Crianças, idosos esperando sob sol. Alguém se importa?',delay:9000},
+     ],
+     mods:(s)=>{s.agua.turbidez=Math.max(s.agua.turbidez,9);s.energia.termica=Math.max(s.energia.termica,24);s.temperatura.media=Math.max(s.temperatura.media,28);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'Defesa Civil SP',msg:'⚠ Situação crítica. Hospitais sem abastecimento regular há 48h. Operação emergencial ativada.',delay:0,sys:true},
+       {src:'moradores',who:'Técnica de enfermagem · Campo Limpo',msg:'A UPA entrou em protocolo de emergência. Estamos esterilizando com álcool porque falta água. Nunca imaginei passar por isso.',delay:3000},
+       {src:'twitter',who:'@cantareirawatch',msg:'Cantareira caiu mais 4% essa semana. Isso não acontecia nem na crise de 2014. Alguém em Brasília tá olhando?',delay:7000},
+       {src:'news',who:'G1 São Paulo',msg:'Nível dos mananciais em queda histórica para o período. Especialistas alertam: sem chuvas nas próximas 2 semanas, risco de desabastecimento total.',delay:11000},
+     ],
+     mods:(s)=>{s.agua.turbidez=Math.max(s.agua.turbidez,14);s.vegetacao.desmat_mensal=Math.max(s.vegetacao.desmat_mensal,14);s.energia.termica=Math.max(s.energia.termica,28);s.saude.hidricas=Math.max(s.saude.hidricas,40);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'moradores',who:'Pai de família · Itaim Paulista',msg:'Saí às 5h pra pegar água. Fila de 200 pessoas antes de mim. Voltei de mãos vazias. Como cuido dos meus filhos?',delay:0},
+       {src:'twitter',who:'@protestoaguasp',msg:'🚨 Manifestação em 5 distritos por falta d\'água. Ruas bloqueadas. 2 milhões de moradores afetados. #AguaPraTodos',delay:4000},
+       {src:'news',who:'UOL Notícias',msg:'Diarreia em alta na periferia — qualidade da água incerta em pontos distribuídos por caminhão-pipa. CVS investiga casos.',delay:8000},
+     ],
+     mods:(s)=>{s.agua.turbidez=Math.max(s.agua.turbidez,22);s.saude.hidricas=Math.max(s.saude.hidricas,52);s.energia.termica=Math.max(s.energia.termica,32);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'Governo do Estado',msg:'🚨 Decreto de emergência hídrica. Cantareira abaixo de 15% — pior nível histórico. Medidas de racionamento intensificado.',delay:0,sys:true,alert:true},
+       {src:'moradores',who:'Moradora · Vila Prudente',msg:'Nunca pensei que ia faltar água em São Paulo. Isso é coisa de notícia de outro país. A cidade chegou nesse ponto.',delay:3000},
+       {src:'news',who:'Estadão',msg:'Surto hídrico confirmado em 6 distritos. Reforço federal solicitado. Recuperação dos mananciais estimada em meses.',delay:7000},
+       {src:'twitter',who:'@ambienteSP',msg:'O desmatamento ao redor dos mananciais é a raiz do problema. A água não cai do céu em solo sem mata. Conectem os pontos.',delay:12000},
+     ],
+     mods:(s)=>{s.agua.turbidez=Math.max(s.agua.turbidez,30);s.saude.hidricas=Math.max(s.saude.hidricas,70);s.energia.termica=Math.max(s.energia.termica,38);s.vegetacao.desmat_mensal=Math.max(s.vegetacao.desmat_mensal,18);}
+    },
+  ]
+},
+{
+  id:'c02',nome:'Ar Irrespirável — Bolsão Tóxico',color:'#94a3b8',
+  layers:['ar','poluicao','saude','temperatura'],
+  phases:[
+    {severity:'warn',
+     chat:[
+       {src:'twitter',who:'@escola_leste_sp',msg:'Suspensas atividades externas nas escolas da Zona Leste por qualidade do ar. Crianças ficam dentro de sala com calor.',delay:0},
+       {src:'moradores',who:'Ciclista · Pinheiros',msg:'IQA 88 no app da CETESB. Fui pedalar e voltei com olhos ardendo. O ar tá parado, não dispersa nada.',delay:5000},
+     ],
+     mods:(s)=>{s.ar.pm25=Math.max(s.ar.pm25,22);s.poluicao.no2=Math.max(s.poluicao.no2,50);}
+    },
+    {severity:'warn',
+     chat:[
+       {src:'moradores',who:'Mãe · Ermelino Matarazzo',msg:'Minha filha de 7 anos voltou da escola com tosse seca. A professora mandou bilhete: 3 crianças assim na sala hoje.',delay:0},
+       {src:'news',who:'Folha de S.Paulo',msg:'UPAs registram alta de 40% em atendimentos respiratórios. Idosos e crianças são maioria. Secretaria distribui máscaras.',delay:5000},
+       {src:'radio',who:'Band News FM',msg:'Inversão térmica retém poluentes — ar quente prende fumaça baixo. Emissões veiculares e industriais na mesma camada.',delay:9000},
+     ],
+     mods:(s)=>{s.ar.pm25=Math.max(s.ar.pm25,32);s.poluicao.no2=Math.max(s.poluicao.no2,62);s.saude.respirat=Math.max(s.saude.respirat,220);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'CETESB',msg:'⚠ ALERTA MÁXIMO: IQA "Péssimo" em 6 estações. Não sair de casa se tiver mais de 60 anos, criança pequena ou gestante.',delay:0,sys:true},
+       {src:'moradores',who:'Moradora · Campo Limpo',msg:'PM2.5 de 58 aqui. Dobro do limite da OMS. Meus filhos estão dentro de casa com janela fechada com esse calor todo.',delay:3500},
+       {src:'twitter',who:'@cet_sp',msg:'Restrição de circulação de caminhões ativada no centro expandido. Urgência sanitária do ar.',delay:8000},
+     ],
+     mods:(s)=>{s.ar.pm25=Math.max(s.ar.pm25,45);s.poluicao.no2=Math.max(s.poluicao.no2,78);s.saude.respirat=Math.max(s.saude.respirat,290);s.poluicao.ozone=Math.max(s.poluicao.ozone,160);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'news',who:'G1 São Paulo',msg:'🚨 Hospitais em colapso — leitos de pneumologia lotados. Defesa Civil ativa plano de contingência.',delay:0,sys:true,alert:true},
+       {src:'moradores',who:'Médica plantonista · HC-USP',msg:'Estamos transferindo pacientes para o interior. Nunca vi tanta gente com crise respiratória ao mesmo tempo aqui.',delay:3000},
+       {src:'twitter',who:'@ar_limpo_sp',msg:'O bolsão tóxico está estacionado há 20h. Vento zero previsto para as próximas 24h. Situação vai piorar antes de melhorar.',delay:8000},
+     ],
+     mods:(s)=>{s.ar.pm25=Math.max(s.ar.pm25,60);s.poluicao.no2=Math.max(s.poluicao.no2,95);s.saude.respirat=Math.max(s.saude.respirat,360);s.temperatura.media=Math.max(s.temperatura.media,31);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'Governo SP',msg:'🚨 ESTADO DE EMERGÊNCIA: PM₂.₅ bate recorde de 30 anos. Evento climático extremo. Evitar qualquer exposição ao ar externo.',delay:0,sys:true,alert:true},
+       {src:'moradores',who:'Morador · Centro',msg:'Saí pra comprar remédio — 10 minutos na rua e voltei com falta de ar. Nunca tinha sentido isso antes. Que cidade deixamos ficar assim?',delay:4000},
+       {src:'news',who:'CNN Brasil',msg:'3 mortes confirmadas por complicações respiratórias. OMS monitora situação em São Paulo como caso de saúde pública global.',delay:9000},
+     ],
+     mods:(s)=>{s.ar.pm25=Math.max(s.ar.pm25,78);s.poluicao.no2=Math.max(s.poluicao.no2,118);s.saude.respirat=Math.max(s.saude.respirat,440);s.poluicao.co=Math.max(s.poluicao.co,3.8);}
+    },
+  ]
+},
+{
+  id:'c03',nome:'Enchente Urbana — Zona Leste',color:'#6366f1',
+  layers:['agua','transito','lixo','solo'],
+  phases:[
+    {severity:'warn',
+     chat:[
+       {src:'moradores',who:'Motorista · Aricanduva',msg:'A Aricanduva tá com 80cm de água. Meu carro ficou ilhado. Estou esperando a enxurrada baixar há 2 horas.',delay:0},
+       {src:'twitter',who:'@zona_leste_viva',msg:'15 linhas de ônibus com rota alterada por causa da Aricanduva. CET na base. Solo impermeável não absorve nada.',delay:5000},
+     ],
+     mods:(s)=>{s.agua.turbidez=Math.max(s.agua.turbidez,12);s.transito.congestionamento=Math.max(s.transito.congestionamento,70);s.lixo.pts_irreg=Math.max(s.lixo.pts_irreg,2100);}
+    },
+    {severity:'warn',
+     chat:[
+       {src:'moradores',who:'Moradora · Vila Matilde',msg:'A rua encheu em 20 minutos. O bueiro tava entupido de lixo. Minha casa alagou pela terceira vez esse ano.',delay:0},
+       {src:'radio',who:'Rádio Nacional SP',msg:'Chuva de 80mm em 1h na Zona Leste. Sistema de drenagem sem capacidade — projetado para 40mm.',delay:5000},
+       {src:'news',who:'R7 SP',msg:'Carro arrastado pela enxurrada no Tatuapé. Duas pessoas resgatadas. Defesa Civil em alerta máximo.',delay:9000},
+     ],
+     mods:(s)=>{s.agua.turbidez=Math.max(s.agua.turbidez,18);s.transito.congestionamento=Math.max(s.transito.congestionamento,80);s.lixo.pts_irreg=Math.max(s.lixo.pts_irreg,2500);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'Defesa Civil SP',msg:'⚠ URGENTE: 3 subprefeituras em emergência. 12 pontos de alagamento crítico. Evite a Zona Leste.',delay:0,sys:true},
+       {src:'moradores',who:'Pai de família · Itaquera',msg:'Água entrando pela janela. Subi os filhos para o segundo andar. Vizinhos chamando pelos telhados. Onde está o socorro?',delay:3000},
+       {src:'twitter',who:'@mapeiasp',msg:'Lixo nos bueiros acelerou a enchente — bloqueio de drenos confirmado em 40 pontos. Limpeza urbana precisa ser preventiva.',delay:8000},
+     ],
+     mods:(s)=>{s.agua.turbidez=Math.max(s.agua.turbidez,25);s.transito.congestionamento=Math.max(s.transito.congestionamento,90);s.lixo.pts_irreg=Math.max(s.lixo.pts_irreg,2900);s.solo.erosao=Math.max(s.solo.erosao,35);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'news',who:'Globo SP',msg:'🚨 Resgate de moradores ilhados em curso. 200 famílias em abrigos emergenciais. Prejuízos estimados em R$ 800 milhões.',delay:0,sys:true,alert:true},
+       {src:'moradores',who:'Moradora · Parque São Lucas',msg:'Perdi tudo que tinha no térreo. Sofá, geladeira, documentos. É a segunda vez em 3 anos. Quando vai ter drenagem de verdade?',delay:4000},
+     ],
+     mods:(s)=>{s.agua.turbidez=Math.max(s.agua.turbidez,32);s.transito.congestionamento=Math.max(s.transito.congestionamento,95);s.lixo.pts_irreg=Math.max(s.lixo.pts_irreg,3200);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'Estado de SP',msg:'🚨 CALAMIDADE: Zona Leste decreta situação de calamidade pública. 15 mortes confirmadas. Exército acionado.',delay:0,sys:true,alert:true},
+       {src:'moradores',who:'Voluntário · Guaianases',msg:'Mais de 500 famílias nos ginásios. Criança, idoso, gestante. Sem colchão suficiente. A sociedade precisa ajudar agora.',delay:4000},
+       {src:'twitter',who:'@engurbanismo_usp',msg:'A tragédia era previsível: solo 95% impermeável + bueiros sem manutenção + lixo = enchente garantida com qualquer chuva forte.',delay:9000},
+     ],
+     mods:(s)=>{s.agua.turbidez=Math.max(s.agua.turbidez,40);s.saude.hidricas=Math.max(s.saude.hidricas,55);s.transito.congestionamento=Math.max(s.transito.congestionamento,98);}
+    },
+  ]
+},
+{
+  id:'c04',nome:'Colapso da Mobilidade Sul',color:'#f43f5e',
+  layers:['transito','poluicao','saude','energia'],
+  phases:[
+    {severity:'warn',
+     chat:[
+       {src:'moradores',who:'Trabalhadora · Santo Amaro',msg:'1h30 de ônibus pra percorrer 8km hoje. O ônibus veio lotado três vezes antes de conseguir entrar.',delay:0},
+       {src:'twitter',who:'@cafecomcet',msg:'220km de congestionamento na região Sul. Marginais e corredores travados desde as 7h.',delay:5000},
+     ],
+     mods:(s)=>{s.transito.congestionamento=Math.max(s.transito.congestionamento,75);s.poluicao.co=Math.max(s.poluicao.co,2.0);}
+    },
+    {severity:'warn',
+     chat:[
+       {src:'radio',who:'Jovem Pan News',msg:'SAMU com 40min de espera por congestionamento. Médicos pedem corredor humanitário nas vias.',delay:0},
+       {src:'moradores',who:'Motorista de app · ABC',msg:'2h parado na Marginal Pinheiros. Aceito 4 corridas por dia inteiro. Não é trabalho, é sofrimento.',delay:6000},
+       {src:'news',who:'Metrô Fácil',msg:'Linha 5-Lilás com intervalos de 8min por superlotação. Plataformas bloqueadas na hora de pico.',delay:10000},
+     ],
+     mods:(s)=>{s.transito.congestionamento=Math.max(s.transito.congestionamento,85);s.ar.pm25=Math.max(s.ar.pm25,35);s.poluicao.co=Math.max(s.poluicao.co,2.8);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'CET-SP',msg:'⚠ 290km de congestionamento. Recorde histórico para esta faixa horária. Evite deslocamentos desnecessários.',delay:0,sys:true},
+       {src:'moradores',who:'Vendedora ambulante · Metrô Ana Rosa',msg:'Já perdi R$200 hoje porque não consigo me locomover. Quando vai ter transporte público que funcione de verdade?',delay:4000},
+       {src:'twitter',who:'@poluicaozero_sp',msg:'CO nos túneis da Marginal em nível crítico. Trabalhadores da cabine de pedágio respirando isso 8h por dia.',delay:9000},
+     ],
+     mods:(s)=>{s.transito.congestionamento=Math.max(s.transito.congestionamento,92);s.ar.pm25=Math.max(s.ar.pm25,48);s.saude.respirat=Math.max(s.saude.respirat,240);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'news',who:'CNN Brasil',msg:'🚨 Governador ativa home-office obrigatório para setor público. Trânsito paralisa região metropolitana.',delay:0,sys:true,alert:true},
+       {src:'moradores',who:'Paciente em ambulância',msg:'[relato ao Twitter]: minha ambulância estava parada há 1h no trânsito. Pensei que não ia chegar. Graças a Deus chegou.',delay:5000},
+     ],
+     mods:(s)=>{s.transito.congestionamento=Math.max(s.transito.congestionamento,97);s.ar.pm25=Math.max(s.ar.pm25,58);s.poluicao.no2=Math.max(s.poluicao.no2,98);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'Estado de SP',msg:'🚨 CRISE DE MOBILIDADE: perdas estimadas em R$ 3,5 bilhões/dia. Intervenção federal solicitada.',delay:0,sys:true,alert:true},
+       {src:'twitter',who:'@lab_cidades_usp',msg:'A solução não é mais via — é menos carro. BRT, metrô, ciclovias. A cidade não cabe mais em asfalto.',delay:5000},
+       {src:'moradores',who:'Professora aposentada · Tatuapé',msg:'Tenho 70 anos e passei minha vida vendo promessa de metrô. Nada muda. A periferia que sofre sempre.',delay:10000},
+     ],
+     mods:(s)=>{s.transito.congestionamento=Math.max(s.transito.congestionamento,99);s.ar.pm25=Math.max(s.ar.pm25,70);s.saude.respirat=Math.max(s.saude.respirat,320);}
+    },
+  ]
+},
+{
+  id:'c05',nome:'Calor Extremo — Ilha Térmica',color:'#ff6b35',
+  layers:['temperatura','ar','saude','energia'],
+  phases:[
+    {severity:'warn',
+     chat:[
+       {src:'twitter',who:'@inmet_sp',msg:'São Paulo registra 36°C no Centro com sensação de 41°C. Ilha de calor: periferia chega a 38°C enquanto Cantareira tem 29°C.',delay:0},
+       {src:'moradores',who:'Moradora · Capão Redondo',msg:'Não tenho como ligar o ar-condicionado. Conta de luz já passou de R$600. Criança com febre aqui.',delay:6000},
+     ],
+     mods:(s)=>{s.temperatura.media=Math.max(s.temperatura.media,33);s.energia.termica=Math.max(s.energia.termica,22);}
+    },
+    {severity:'warn',
+     chat:[
+       {src:'news',who:'G1 SP',msg:'Postos de saúde com fila de idosos em crise hipertensiva. Calor extremo afeta quem mora em habitações precárias.',delay:0},
+       {src:'moradores',who:'Agente de saúde · Brasilândia',msg:'Visito 20 casas por dia. Metade dos idosos desta semana com pressão alta por causa do calor. Não há como descansar aqui.',delay:6000},
+       {src:'radio',who:'CBN SP',msg:'Bandeira vermelha de energia ativada: consumo residencial dispara com ar-condicionados. Apagão não descartado.',delay:10000},
+     ],
+     mods:(s)=>{s.temperatura.media=Math.max(s.temperatura.media,35);s.energia.termica=Math.max(s.energia.termica,26);s.saude.respirat=Math.max(s.saude.respirat,210);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'SMS-SP',msg:'⚠ ALERTA DE SAÚDE: 3 mortes por insolação nas últimas 24h. Pontos de resfriamento abertos em subprefeituras.',delay:0,sys:true},
+       {src:'moradores',who:'Trabalhador de construção · Itaquera',msg:'Trabalho no sol das 7h às 17h. Não tem opção. Hoje um colega desmaiou. Não temos nem sombra pra descansar.',delay:4000},
+       {src:'twitter',who:'@calor_urbano_sp',msg:'Imagem de termômetro: 42°C no asfalto do Capão Redondo vs 31°C no Ibirapuera. Injustiça climática é isso.',delay:9000},
+     ],
+     mods:(s)=>{s.temperatura.media=Math.max(s.temperatura.media,37);s.energia.termica=Math.max(s.energia.termica,30);s.saude.respirat=Math.max(s.saude.respirat,260);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'news',who:'Folha de S.Paulo',msg:'🚨 Apagão parcial em 6 bairros — sobrecarga na rede por consumo de ar-condicionado. Hospitais em geradores.',delay:0,sys:true,alert:true},
+       {src:'moradores',who:'Mãe · Vila Brasilândia',msg:'Sem luz há 8h com esse calor. Comida estragando na geladeira. Bebê com febre. Onde consigo gelo?',delay:5000},
+     ],
+     mods:(s)=>{s.temperatura.media=Math.max(s.temperatura.media,38);s.energia.termica=Math.max(s.energia.termica,35);s.saude.hidricas=Math.max(s.saude.hidricas,30);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'Governo SP',msg:'🚨 EMERGÊNCIA CLIMÁTICA: 12 mortes confirmadas por calor. Temperatura recorde de 43°C em SP. Forças armadas auxiliam distribuição de água.',delay:0,sys:true,alert:true},
+       {src:'twitter',who:'@ciencia_clima_sp',msg:'A ilha de calor urbana de SP é 7°C mais quente que áreas verdes próximas. Isso não é destino — é resultado de décadas de decisão de planejamento.',delay:5000},
+       {src:'moradores',who:'Professora · Heliópolis',msg:'Escola sem ventilação, asfalto ao redor, sem árvore. Os alunos não conseguem se concentrar. Isso afeta o futuro deles.',delay:10000},
+     ],
+     mods:(s)=>{s.temperatura.media=Math.max(s.temperatura.media,40);s.energia.termica=Math.max(s.energia.termica,40);s.saude.hidricas=Math.max(s.saude.hidricas,45);}
+    },
+  ]
+},
+{
+  id:'c06',nome:'Colapso dos Aterros e Coleta',color:'#a78bfa',
+  layers:['lixo','solo','agua','saude'],
+  phases:[
+    {severity:'warn',
+     chat:[
+       {src:'moradores',who:'Moradora · Brasilândia',msg:'5 dias sem coleta de lixo aqui. Saco de lixo na frente de casa acumulando. Começa a cheirar e atrair mosquito.',delay:0},
+       {src:'twitter',who:'@bairro_norte_sp',msg:'12 distritos sem coleta. Prefeitura diz que tá resolvendo. Calçada intransitável em partes da Leste e Norte.',delay:6000},
+     ],
+     mods:(s)=>{s.lixo.pts_irreg=Math.max(s.lixo.pts_irreg,2100);s.lixo.cap_aterro=Math.max(s.lixo.cap_aterro,91);}
+    },
+    {severity:'warn',
+     chat:[
+       {src:'news',who:'R7 SP',msg:'Focos de dengue triplicam em áreas com acúmulo de resíduos. Aedes em água parada no lixo descartado.',delay:0},
+       {src:'moradores',who:'Morador · Itaquera',msg:'Rato na calçada de noite. Criança não pode nem brincar na rua. Isso é desumanidade.',delay:6000},
+       {src:'radio',who:'Rádio Cultura FM',msg:'Chorume começando a vazar nos bueiros. Risco de contaminação hídrica em córregos próximos aos pontos de acúmulo.',delay:10000},
+     ],
+     mods:(s)=>{s.lixo.pts_irreg=Math.max(s.lixo.pts_irreg,2400);s.saude.dengue=Math.max(s.saude.dengue,75);s.agua.turbidez=Math.max(s.agua.turbidez,7);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'Defesa Civil SP',msg:'⚠ URGENTE: chorume detectado no Córrego do Cabuçu. Aterro Caieiras fecha para novos recebimentos — capacidade esgotada.',delay:0,sys:true},
+       {src:'moradores',who:'Pescador · Córrego Cabuçu',msg:'A água ficou preta. Nunca tinha visto isso. Os peixes sumiram essa semana.',delay:4000},
+       {src:'twitter',who:'@vigilancia_amb',msg:'Amostras colhidas no Cabuçu. Resultado preliminar: coliformes fecais fora do limite. Situação grave.',delay:9000},
+     ],
+     mods:(s)=>{s.lixo.pts_irreg=Math.max(s.lixo.pts_irreg,2700);s.agua.turbidez=Math.max(s.agua.turbidez,12);s.solo.agrotox=Math.max(s.solo.agrotox,22);s.saude.dengue=Math.max(s.saude.dengue,90);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'CVS-SP',msg:'🚨 ALERTA: 200 notificações de leptospirose em 48h. Roedores em expansão urbana. 5 subprefeituras em estado de alerta sanitário.',delay:0,sys:true,alert:true},
+       {src:'moradores',who:'Mãe · Campo Limpo',msg:'Meu filho pisou num poço de chorume descalço na rua. Está tomando antibiótico preventivo. Que cidade é essa?',delay:4000},
+       {src:'news',who:'UOL SP',msg:'200 notificações de leptospirose em 48h — crescimento mais rápido que os surtos de 2009. Solo contaminado mapeado em 3 subprefeituras.',delay:9000},
+     ],
+     mods:(s)=>{s.lixo.pts_irreg=Math.max(s.lixo.pts_irreg,3000);s.agua.turbidez=Math.max(s.agua.turbidez,18);s.saude.hidricas=Math.max(s.saude.hidricas,60);s.saude.dengue=Math.max(s.saude.dengue,110);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'Secretaria Estadual de Saúde',msg:'🚨 CÓLERA INVESTIGADA em 3 distritos. OMS acionada. Nunca antes em SP no século XXI. Emergência sanitária máxima.',delay:0,sys:true,alert:true},
+       {src:'twitter',who:'@saude_coletiva_br',msg:'Cólera é doença de ausência de saneamento básico. Em 2024. Na maior cidade da América Latina. Deixamos chegar até aqui.',delay:5000},
+       {src:'moradores',who:'Médico · UBS Jardim Helena',msg:'Pacientes chegando desidratados com diarreia severa. Situação gravíssima. Precisamos de suporte urgente.',delay:10000},
+     ],
+     mods:(s)=>{s.lixo.pts_irreg=Math.max(s.lixo.pts_irreg,3500);s.agua.turbidez=Math.max(s.agua.turbidez,28);s.saude.hidricas=Math.max(s.saude.hidricas,90);s.solo.erosao=Math.max(s.solo.erosao,45);}
+    },
+  ]
+},
+{
+  id:'c07',nome:'Surto de Dengue — Colapso na Saúde',color:'#f472b6',
+  layers:['saude','agua','lixo','temperatura'],
+  phases:[
+    {severity:'warn',
+     chat:[
+       {src:'moradores',who:'Agente de saúde · Sapopemba',msg:'180% de crescimento de dengue nessa semana. Faço visita em 30 casas por dia. Metade tem foco de Aedes.',delay:0},
+       {src:'twitter',who:'@dengue_sp_alerta',msg:'Postos de saúde com fila de 6 horas na Zona Leste e Norte. O sistema já não aguenta a demanda.',delay:5000},
+     ],
+     mods:(s)=>{s.saude.dengue=Math.max(s.saude.dengue,70);s.saude.respirat=Math.max(s.saude.respirat,200);}
+    },
+    {severity:'warn',
+     chat:[
+       {src:'oficial',who:'Estado de SP',msg:'Emergência decretada por dengue. Estoque de soro esgotado em 40% dos postos. Pedido emergencial ao Ministério da Saúde.',delay:0},
+       {src:'moradores',who:'Pai · Ermelino Matarazzo',msg:'Meu filho está internado com dengue. Esperei 4h no pronto-socorro com ele convulsionando na fila.',delay:6000},
+       {src:'news',who:'R7 SP',msg:'Voluntários recrutados para construir estruturas provisórias de atendimento nos parques da cidade.',delay:10000},
+     ],
+     mods:(s)=>{s.saude.dengue=Math.max(s.saude.dengue,95);s.lixo.pts_irreg=Math.max(s.lixo.pts_irreg,2200);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'CVS-SP',msg:'⚠ DENGUE HEMORRÁGICA: 12 casos confirmados, 3 mortes em 24h. Escolas da Zona Leste viraram postos de atendimento.',delay:0,sys:true},
+       {src:'moradores',who:'Professora · Guaianases',msg:'A escola virou hospital improvisado. Tenho medo de ir trabalhar. Mas quem vai cuidar das crianças?',delay:5000},
+       {src:'twitter',who:'@aedes_sp_watch',msg:'2.800 focos de água parada mapeados. A maioria em descarte irregular de lixo — pneu, recipiente, entulho. Dengue é escolha de política pública.',delay:10000},
+     ],
+     mods:(s)=>{s.saude.dengue=Math.max(s.saude.dengue,130);s.agua.turbidez=Math.max(s.agua.turbidez,8);s.temperatura.media=Math.max(s.temperatura.media,30);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'news',who:'Globo SP',msg:'🚨 Sistema de saúde em colapso. UPAs com 340% de ocupação. Exército montará hospitais de campanha.',delay:0,sys:true,alert:true},
+       {src:'moradores',who:'Mulher na UPA · Campo Limpo',msg:'Paciente em maca no corredor ao meu lado está gemendo. Somos tratados como animal. 4 horas aqui.',delay:5000},
+       {src:'radio',who:'CBN SP',msg:'Governador pede apoio federal. Temperatura prevista para subir — ciclo do Aedes vai se agravar nos próximos dias.',delay:10000},
+     ],
+     mods:(s)=>{s.saude.dengue=Math.max(s.saude.dengue,175);s.saude.respirat=Math.max(s.saude.respirat,290);s.lixo.pts_irreg=Math.max(s.lixo.pts_irreg,2600);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'OMS',msg:'🚨 SP monitorada internacionalmente: pior epidemia de dengue da cidade em 20 anos. Risco de alastramento regional.',delay:0,sys:true,alert:true},
+       {src:'moradores',who:'Médico pesquisador · UNIFESP',msg:'15 mortes confirmadas. O Aedes prospera onde há calor, lixo e água parada. Tudo que a periferia tem em excesso.',delay:5000},
+       {src:'twitter',who:'@saude_inequidade',msg:'A dengue é democrática? Não — os casos se concentram 3x mais nas zonas de baixo IDH. Isso é dado, não opinião.',delay:10000},
+     ],
+     mods:(s)=>{s.saude.dengue=Math.max(s.saude.dengue,220);s.saude.respirat=Math.max(s.saude.respirat,360);s.agua.turbidez=Math.max(s.agua.turbidez,12);}
+    },
+  ]
+},
+{
+  id:'c08',nome:'Blecaute Metropolitano',color:'#fbbf24',
+  layers:['energia','transito','saude','temperatura'],
+  phases:[
+    {severity:'warn',
+     chat:[
+       {src:'moradores',who:'Moradora · Guarulhos',msg:'Luz apagou aqui tem 2 horas. Enel diz que não sabe quando volta. Geladeira vai estragar tudo.',delay:0},
+       {src:'twitter',who:'@enel_monitor_sp',msg:'600 mil sem energia. Leste e Norte. Subestações Itaim e Guarulhos caíram simultâneas. Suspeita de sobrecarga.',delay:5000},
+     ],
+     mods:(s)=>{s.energia.termica=Math.max(s.energia.termica,26);s.transito.congestionamento=Math.max(s.transito.congestionamento,65);}
+    },
+    {severity:'warn',
+     chat:[
+       {src:'moradores',who:'Dono de mercearia · Penha',msg:'2 horas sem luz. Tive que jogar fora a carne do balcão refrigerado. Prejuízo de R$ 3.000. Enel não indeniza.',delay:0},
+       {src:'radio',who:'Band News FM',msg:'Semáforos apagados em 120 cruzamentos. CET acionando agentes de trânsito. Risco de acidentes.',delay:6000},
+       {src:'news',who:'G1 SP',msg:'Hospitais em geradores. Enel prevê normalização em 6h — mas moradores não confiam após últimos apagões.',delay:10000},
+     ],
+     mods:(s)=>{s.energia.termica=Math.max(s.energia.termica,30);s.transito.congestionamento=Math.max(s.transito.congestionamento,72);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'ANEEL',msg:'⚠ Falha em cascata confirmada: 3 subestações fora de operação. 1,2 milhão sem energia. Prazo de restabelecimento incerto.',delay:0,sys:true},
+       {src:'moradores',who:'Dialisada · Guarulhos',msg:'Preciso de energia pra minha máquina de diálise. Gerador da clínica tem autonomia de 4h. Depois disso, o que acontece comigo?',delay:4000},
+       {src:'twitter',who:'@blecaute_sp_live',msg:'Saqueos registrados em 3 comércios na Zona Norte após 5h de apagão. Situação se deteriorando com o calor.',delay:9000},
+     ],
+     mods:(s)=>{s.energia.termica=Math.max(s.energia.termica,35);s.transito.congestionamento=Math.max(s.transito.congestionamento,80);s.temperatura.media=Math.max(s.temperatura.media,32);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'news',who:'CNN Brasil',msg:'🚨 8h sem energia em partes da RMSP. Metrô paralisado em 3 linhas por falta de tração. Caos total.',delay:0,sys:true,alert:true},
+       {src:'moradores',who:'Morador · Vila Maria',msg:'Meu filho ficou preso no elevador 3 horas. Tem 70 anos. Bombeiros resgataram 47 pessoas presas no metrô escuro.',delay:5000},
+     ],
+     mods:(s)=>{s.energia.termica=Math.max(s.energia.termica,40);s.transito.congestionamento=Math.max(s.transito.congestionamento,88);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'Governo SP',msg:'🚨 EMERGÊNCIA ENERGÉTICA: 14h de apagão. 2,4 milhões sem energia. Governo federal acionado.',delay:0,sys:true,alert:true},
+       {src:'twitter',who:'@infraestrutura_sp',msg:'A rede elétrica de SP foi projetada para outra cidade. Não suporta crescimento real + demanda de ar-condicionado + eventos climáticos.',delay:5000},
+       {src:'moradores',who:'Engenheira eletricista · Santo André',msg:'Trabalhei na Enel 10 anos. A manutenção preventiva foi cortada ano após ano por "pressão de custos". Era questão de tempo.',delay:10000},
+     ],
+     mods:(s)=>{s.energia.termica=Math.max(s.energia.termica,43);s.transito.congestionamento=Math.max(s.transito.congestionamento,95);s.saude.respirat=Math.max(s.saude.respirat,280);}
+    },
+  ]
+},
+{
+  id:'c09',nome:'Desmatamento em Área de Manancial',color:'#22c55e',
+  layers:['vegetacao','agua','solo','temperatura'],
+  phases:[
+    {severity:'warn',
+     chat:[
+       {src:'moradores',who:'Guarda florestal · Cantareira',msg:'Motosserra todo final de semana. Tira a mata e vende pra loteamento. Denuncio, abre inquérito, não vai pra frente.',delay:0},
+       {src:'twitter',who:'@cantareira_viva',msg:'Imagens de satélite: 120 hectares desmatados neste mês na APA Cantareira. O pulmão verde de SP sumindo.',delay:5000},
+     ],
+     mods:(s)=>{s.vegetacao.desmat_mensal=Math.max(s.vegetacao.desmat_mensal,12);s.agua.turbidez=Math.max(s.agua.turbidez,5);}
+    },
+    {severity:'warn',
+     chat:[
+       {src:'news',who:'Repórter Brasil',msg:'Ocupação irregular avança 800m/semana sobre área de proteção ambiental em Parelheiros. Fiscalização insuficiente.',delay:0},
+       {src:'moradores',who:'Agricultor · Cotia',msg:'A nascente que abastecia minha chácara sumiu depois que derrubaram a mata ao redor. Não consigo mais irrigar.',delay:6000},
+       {src:'radio',who:'Rádio Cultura',msg:'Área desmatada não retém chuva — turbidez dos mananciais sobe 40% após evento de chuva em área de mata removida.',delay:10000},
+     ],
+     mods:(s)=>{s.vegetacao.desmat_mensal=Math.max(s.vegetacao.desmat_mensal,15);s.agua.turbidez=Math.max(s.agua.turbidez,8);s.solo.erosao=Math.max(s.solo.erosao,28);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'SMA-SP',msg:'⚠ URGENTE: 450 ha removidos no mês — maior ritmo de desmatamento em 10 anos. Mananciais em risco direto.',delay:0,sys:true},
+       {src:'moradores',who:'Professora de biologia · Guarulhos',msg:'Levei meus alunos à Cantareira no ano passado. Voltamos agora: a área que era mata virou barraco e terra nua.',delay:4000},
+       {src:'twitter',who:'@agua_sp_futuro',msg:'A Cantareira abastece 9 milhões de pessoas. Cada árvore que cai é um risco para o abastecimento de todos nós.',delay:9000},
+     ],
+     mods:(s)=>{s.vegetacao.desmat_mensal=Math.max(s.vegetacao.desmat_mensal,18);s.agua.turbidez=Math.max(s.agua.turbidez,12);s.solo.erosao=Math.max(s.solo.erosao,35);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'news',who:'O Estado de S.Paulo',msg:'🚨 Mananciais entram em alerta: desmatamento reduz recarga do aquífero. Chuvas próximas podem trazer enchentes por falta de cobertura vegetal.',delay:0,sys:true,alert:true},
+       {src:'moradores',who:'Morador · Parelheiros',msg:'Aqui em baixo a gente sente a consequência. Antes a chuva demorava mais pra chegar no córrego. Agora em 10 minutos tá transbordando.',delay:5000},
+     ],
+     mods:(s)=>{s.vegetacao.desmat_mensal=Math.max(s.vegetacao.desmat_mensal,21);s.agua.turbidez=Math.max(s.agua.turbidez,16);s.temperatura.media=Math.max(s.temperatura.media,30);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'ANA',msg:'🚨 ALERTA NACIONAL: cobertura vegetal dos mananciais de SP abaixo do mínimo crítico. Risco de desabastecimento hídrico na próxima estiagem.',delay:0,sys:true,alert:true},
+       {src:'twitter',who:'@inpe_deforestation',msg:'SP perdeu 12% da cobertura vegetal protetora em 5 anos. A cidade que tem sede não cuida da floresta que guarda sua água.',delay:5000},
+       {src:'moradores',who:'Pesquisadora · IPT',msg:'Reflorestamento leva 30 anos para recompor serviço ambiental. O tempo que não plantamos ontem, pagamos com crise amanhã.',delay:10000},
+     ],
+     mods:(s)=>{s.vegetacao.desmat_mensal=Math.max(s.vegetacao.desmat_mensal,25);s.agua.turbidez=Math.max(s.agua.turbidez,22);s.solo.erosao=Math.max(s.solo.erosao,48);}
+    },
+  ]
+},
+{
+  id:'c10',nome:'Paralisia Urbana — Colapso de Mobilidade',color:'#f43f5e',
+  layers:['transito','poluicao','ar','saude'],
+  phases:[
+    {severity:'warn',
+     chat:[
+       {src:'twitter',who:'@congestionamento_sp',msg:'380km de congestionamento. Segundo pior da história. Av. Paulista e Marginais travadas desde o meio-dia.',delay:0},
+       {src:'moradores',who:'Trabalhadora · ABC',msg:'Saí às 6h. São 10h. Ainda não cheguei. Desconto em folha por atraso. Como a gente vive assim?',delay:5000},
+     ],
+     mods:(s)=>{s.transito.congestionamento=Math.max(s.transito.congestionamento,88);s.poluicao.co=Math.max(s.poluicao.co,2.4);}
+    },
+    {severity:'warn',
+     chat:[
+       {src:'radio',who:'CBN SP · Hora do Rush',msg:'PM₂.₅ dobra no centro. SAMU sem conseguir se locomover. Helipontos hospitalares acionados.',delay:0},
+       {src:'moradores',who:'Motorista de ambulância · SAMU',msg:'Minha ambulância ficou 2h no trânsito com paciente infartando. Abriram espaço no fim. Mas foi por pouco.',delay:6000},
+     ],
+     mods:(s)=>{s.transito.congestionamento=Math.max(s.transito.congestionamento,93);s.ar.pm25=Math.max(s.ar.pm25,38);s.poluicao.co=Math.max(s.poluicao.co,3.0);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'Metrô SP',msg:'⚠ Linhas 2, 3 e 11 paralisadas. Estações evacuadas por superlotação. 4 milhões de passageiros afetados.',delay:0,sys:true},
+       {src:'moradores',who:'Jovem · Metrô Sé',msg:'Empurrada pela multidão na plataforma. Tive medo de cair nos trilhos. Nunca vi tanta gente em pânico.',delay:4000},
+       {src:'twitter',who:'@no_metro_sp',msg:'CO nos túneis em níveis críticos. Trabalhadores do metrô sem EPI adequado. Vidas em risco.',delay:9000},
+     ],
+     mods:(s)=>{s.transito.congestionamento=Math.max(s.transito.congestionamento,97);s.ar.pm25=Math.max(s.ar.pm25,52);s.saude.respirat=Math.max(s.saude.respirat,260);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'news',who:'Globo SP',msg:'🚨 420km de congestionamento — pior da história. Governador ativa toque recolher comercial e home-office obrigatório.',delay:0,sys:true,alert:true},
+       {src:'moradores',who:'Entregador · Zona Leste',msg:'420km. A cidade parou. Não consigo fazer uma entrega. Tenho 3 filhos e não recebi hoje. Quem paga minha conta?',delay:5000},
+     ],
+     mods:(s)=>{s.transito.congestionamento=Math.max(s.transito.congestionamento,99);s.ar.pm25=Math.max(s.ar.pm25,65);s.poluicao.no2=Math.max(s.poluicao.no2,105);}
+    },
+    {severity:'crit',
+     chat:[
+       {src:'oficial',who:'Estado de SP',msg:'🚨 PARALISIA TOTAL: perdas de R$ 4 bilhões. SP comparada às piores crises urbanas globais. Cúpula de emergência convocada.',delay:0,sys:true,alert:true},
+       {src:'moradores',who:'Economista urbana · FIPE',msg:'8 mortes vinculadas ao colapso de mobilidade — infartes, SAMU atrasado. O custo humano não aparece no PIB.',delay:5000},
+       {src:'twitter',who:'@cidade_pra_quem',msg:'Uma cidade que só funciona de carro não é uma cidade — é um estacionamento com arranha-céus. Precisamos reimaginar SP.',delay:10000},
+     ],
+     mods:(s)=>{s.ar.pm25=Math.max(s.ar.pm25,80);s.poluicao.no2=Math.max(s.poluicao.no2,132);s.poluicao.co=Math.max(s.poluicao.co,5.2);s.saude.respirat=Math.max(s.saude.respirat,400);}
+    },
+  ]
+},
+];
+
+// ═══════════════════════════════════════════════════════════════
+// ESTADO E SIMULAÇÃO
+// ═══════════════════════════════════════════════════════════════
+const BASE={
+  temperatura:{media:24.2,ilha_calor:4.2},
+  poluicao:{no2:38,co:1.0,ozone:72},
+  ar:{pm25:15,no2:38,iqa:58},
+  agua:{turbidez:2.5,ph:7.1,balneab:'PRÓPRIA'},
+  transito:{congestionamento:44,ilha_calor:3.8,ruido:65},
+  energia:{hidro:64,termica:16,solar:8,banda:'VERDE'},
+  lixo:{pts_irreg:1750,cap_aterro:76,coleta:95},
+  vegetacao:{cobertura:12.8,desmat_mensal:7.5,fragmentos:860},
+  solo:{agrotox:13.2,erosao:20,impermeavel:77},
+  saude:{respirat:170,hidricas:18,dengue:38},
+  clima:{temp:24.2,chuva:0,umidade:74},
+};
+let STATE=JSON.parse(JSON.stringify(BASE));
+let _chuva=false,_tick=0,_crisisMods=null;
+
+function jit(r){return(Math.random()-.5)*r*2}
+function clamp(v,lo,hi){return Math.min(hi,Math.max(lo,v))}
+function calcIQA(p){
+  if(p<=12)return Math.round(50*p/12);
+  if(p<=35.4)return Math.round(50+(p-12)*50/23.4);
+  if(p<=55.4)return Math.round(100+(p-35.4)*50/20);
+  return Math.round(150+(p-55.4)*100/94.6);
+}
+
+function tick(){
+  _tick++;
+  const h=new Date().getHours();
+  const pico=(h>=7&&h<=9)||(h>=17&&h<=20);
+  const noite=h>=22||h<=5;
+  const wknd=[0,6].includes(new Date().getDay());
+
+  STATE.clima.temp=+(22+4*Math.sin((h-6)*Math.PI/12)+jit(2)).toFixed(1);
+  if(Math.random()<0.06)_chuva=!_chuva;
+  STATE.clima.chuva=_chuva?+(2+Math.random()*16).toFixed(1):0;
+
+  STATE.vegetacao.cobertura=+Math.max(8,BASE.vegetacao.cobertura-_tick*.0003+jit(.2)).toFixed(1);
+  STATE.vegetacao.desmat_mensal=+Math.max(3,BASE.vegetacao.desmat_mensal+jit(.8)).toFixed(1);
+  const vegF=1-(STATE.vegetacao.cobertura/100);
+
+  let cong=noite?10:pico?62+jit(10):38+jit(8);
+  if(_chuva)cong=Math.min(97,cong*1.25);
+  STATE.transito.congestionamento=clamp(Math.round(cong+jit(5)),5,99);
+  STATE.transito.ruido=Math.round(pico?71+jit(4):61+jit(4));
+  const tf=STATE.transito.congestionamento/50;
+
+  const soloF=STATE.solo.impermeavel/78;
+  STATE.temperatura.media=+Math.max(18,STATE.clima.temp+jit(1)).toFixed(1);
+  STATE.temperatura.ilha_calor=+(2+vegF*4.5+tf*1.5+(soloF-1)*1.8+jit(.6)).toFixed(1);
+  STATE.transito.ilha_calor=STATE.temperatura.ilha_calor;
+
+  const enF=STATE.energia.termica/BASE.energia.termica;
+  const cf=_chuva?.55:1;
+  STATE.poluicao.no2=+Math.max(12,BASE.poluicao.no2*tf*enF*cf+jit(3)).toFixed(1);
+  STATE.poluicao.co=+Math.max(0.3,BASE.poluicao.co*tf*cf+jit(.25)).toFixed(2);
+  const tempFactor=Math.max(1,(STATE.temperatura.media-22)/10);
+  STATE.poluicao.ozone=clamp(Math.round(BASE.poluicao.ozone*tempFactor*(noite?.55:1)+jit(7)),20,220);
+
+  const polF=STATE.poluicao.no2/BASE.poluicao.no2;
+  STATE.ar.pm25=+Math.max(3,(BASE.ar.pm25*tf*cf+polF*2)+jit(2)).toFixed(1);
+  STATE.ar.no2=+Math.max(6,BASE.ar.no2*(tf*.8)*cf+jit(3.5)).toFixed(1);
+  STATE.ar.iqa=calcIQA(STATE.ar.pm25);
+
+  const calor=STATE.temperatura.media>27;
+  const calorin=calor?1+(STATE.temperatura.media-27)*.05:1;
+  STATE.energia.termica=clamp(Math.round(BASE.energia.termica*calorin+jit(3)),5,45);
+  STATE.energia.hidro=clamp(Math.round(100-STATE.energia.termica-BASE.energia.solar+jit(2)),25,80);
+  STATE.energia.banda=STATE.energia.termica>25?'VERMELHA':STATE.energia.termica>20?'AMARELA':'VERDE';
+
+  STATE.lixo.pts_irreg=Math.round(BASE.lixo.pts_irreg*(wknd?1.15:1)+jit(30));
+  STATE.lixo.cap_aterro=clamp(Math.round(BASE.lixo.cap_aterro+_tick*.0006+jit(1)),60,99);
+  STATE.lixo.coleta=clamp(Math.round(BASE.lixo.coleta+jit(2)),86,99);
+  const lixoF=STATE.lixo.pts_irreg/BASE.lixo.pts_irreg;
+
+  const erodF=1+(1-STATE.vegetacao.cobertura/12)*.10;
+  STATE.solo.agrotox=+(BASE.solo.agrotox+jit(.7)).toFixed(1);
+  STATE.solo.erosao=clamp(Math.round(BASE.solo.erosao*erodF*(_chuva?1.3:1)+jit(2)),8,55);
+  STATE.solo.impermeavel=clamp(Math.round(BASE.solo.impermeavel+_tick*.00012+jit(.4)),70,96);
+
+  const vegFilt=Math.max(.4,STATE.vegetacao.cobertura/BASE.vegetacao.cobertura);
+  STATE.agua.turbidez=+(_chuva?BASE.agua.turbidez*3.5*lixoF/vegFilt+jit(1.8):BASE.agua.turbidez*lixoF+jit(.4)).toFixed(1);
+  STATE.agua.ph=+(BASE.agua.ph+jit(.25)).toFixed(1);
+  STATE.agua.balneab=STATE.agua.turbidez>10?'IMPRÓPRIA':STATE.agua.turbidez>5?'REGULAR':'PRÓPRIA';
+
+  const arEf=STATE.ar.pm25/BASE.ar.pm25;
+  const aguaEf=Math.max(1,STATE.agua.turbidez/BASE.agua.turbidez);
+  const tempEf=Math.max(1,STATE.temperatura.media/24);
+  STATE.saude.respirat=Math.round(BASE.saude.respirat*arEf+jit(7));
+  STATE.saude.hidricas=Math.round(BASE.saude.hidricas*aguaEf+jit(2));
+  STATE.saude.dengue=clamp(Math.round(BASE.saude.dengue*tempEf*lixoF*(_chuva?1.35:1)+jit(5)),12,200);
+
+  if(_crisisMods)_crisisMods(STATE);
+
+  STATE.agua.balneab=STATE.agua.turbidez>10?'IMPRÓPRIA':STATE.agua.turbidez>5?'REGULAR':'PRÓPRIA';
+  STATE.ar.iqa=calcIQA(STATE.ar.pm25);
+  STATE.energia.banda=STATE.energia.termica>25?'VERMELHA':STATE.energia.termica>20?'AMARELA':'VERDE';
+}
+
+function getAlerts(){
+  const a=[];
+  if(STATE.ar.iqa>100)a.push({sev:'crit',txt:`⚠ IQA ${STATE.ar.iqa} — Ar INADEQUADO`});
+  else if(STATE.ar.iqa>80)a.push({sev:'warn',txt:`⚡ IQA ${STATE.ar.iqa} — Ar MODERADO`});
+  if(STATE.agua.balneab!=='PRÓPRIA')a.push({sev:'crit',txt:`⚠ Água ${STATE.agua.balneab}`});
+  if(STATE.energia.banda==='VERMELHA')a.push({sev:'crit',txt:`⚡ Bandeira VERMELHA`});
+  else if(STATE.energia.banda==='AMARELA')a.push({sev:'warn',txt:`⚡ Bandeira AMARELA`});
+  if(STATE.transito.congestionamento>80)a.push({sev:'crit',txt:`🚦 Congest. ${STATE.transito.congestionamento}%`});
+  if(STATE.saude.dengue>80)a.push({sev:'crit',txt:`🦟 Dengue ${STATE.saude.dengue}/100k`});
+  if(STATE.poluicao.no2>75)a.push({sev:'crit',txt:`☁ NO₂ elevado`});
+  if(STATE.lixo.pts_irreg>2200)a.push({sev:'warn',txt:`♻ ${STATE.lixo.pts_irreg} descartes irrg.`});
+  if(_chuva)a.push({sev:'warn',txt:`🌧 Chuva ativa`});
+  if(!a.length)a.push({sev:'ok',txt:'✓ Indicadores normais'});
+  return a;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SISTEMA DE CRISES
+// ═══════════════════════════════════════════════════════════════
+const CURRENT_CRISIS=CRISES[Math.floor(Math.random()*CRISES.length)];
+let _phase=-1;
+let _phaseTimer=null;
+
+function startCrisis(){
+  document.getElementById('crisis-badge').textContent=`● ${CURRENT_CRISIS.nome.toUpperCase()}`;
+  document.getElementById('crisis-badge').classList.add('show');
+  document.getElementById('phase-bar').classList.add('show');
+  document.getElementById('phase-bar').style.setProperty('--crisis-color',CURRENT_CRISIS.color);
+  advancePhase();
+}
+
+function advancePhase(){
+  _phase++;
+  if(_phase>=CURRENT_CRISIS.phases.length)return;
+  const phase=CURRENT_CRISIS.phases[_phase];
+
+  CURRENT_CRISIS.layers.forEach(lid=>{
+    if(!active.has(lid)){/* não ativa automático — experiência investigativa */}
+  });
+
+  _crisisMods=phase.mods;
+  tick();
+
+  for(let i=0;i<5;i++){
+    const d=document.getElementById(`pd${i}`);
+    if(i<_phase)d.className='ph-dot done';
+    else if(i===_phase)d.className='ph-dot active';
+    else d.className='ph-dot';
+  }
+
+  // Chat messages com relatos humanos
+  phase.chat.forEach(m=>{
+    setTimeout(()=>addChatMessage(m.who,m.msg,m.src||'moradores',m.sys||false,m.alert||false),m.delay||0);
+  });
+
+  if(_ready){active.forEach(id=>renderLayer(id));updateUI();}
+  if(_phase<4){_phaseTimer=setTimeout(advancePhase,PHASE_DURATION);}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SISTEMA DE SINAIS ESPONTÂNEOS (pontos surgem a cada ~1min)
+// ═══════════════════════════════════════════════════════════════
+let _signalPool=[];
+let _signalIdx=0;
+
+function buildSignalPool(){
+  // Seleciona todos os âncoras das camadas ativas e monta fila de relatos
+  const pool=[];
+  active.forEach(lid=>{
+    (ANCHORS_BY_LAYER[lid]||[]).forEach(a=>{
+      const reports=a.reports(STATE);
+      reports.forEach(r=>{
+        pool.push({anchor:a,report:r,lid});
+      });
+    });
+  });
+  // Embaralha
+  for(let i=pool.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [pool[i],pool[j]]=[pool[j],pool[i]];
+  }
+  return pool;
+}
+
+function emitSignal(){
+  if(!_ready||active.size===0)return;
+  if(_signalPool.length===0||_signalIdx>=_signalPool.length){
+    _signalPool=buildSignalPool();
+    _signalIdx=0;
+  }
+  if(_signalPool.length===0)return;
+  const sig=_signalPool[_signalIdx++];
+  // Adiciona ponto flash no mapa
+  flashAnchor(sig.anchor);
+  // Adiciona relato no chat
+  addChatMessage(sig.anchor.nome+' · '+sig.anchor.bairro,sig.report.text,sig.report.src,false,false);
+}
+
+function flashAnchor(anchor){
+  // Pulso extra no dot do âncora para chamar atenção
+  const dotId=`dot-${anchor.id}`;
+  if(!_map||!_map.getLayer(dotId))return;
+  let flashes=0;
+  const iv=setInterval(()=>{
+    try{
+      const op=flashes%2===0?1:0.3;
+      _map.setPaintProperty(dotId,'circle-opacity',op);
+    }catch(e){}
+    flashes++;
+    if(flashes>5)clearInterval(iv);
+  },180);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHAT
+// ═══════════════════════════════════════════════════════════════
+const SRC_LABELS={
+  moradores:'moradores',twitter:'Twitter/X',radio:'Rádio',
+  news:'Notícia',oficial:'Oficial',avistamento:'avistamento'
+};
+
+function addChatMessage(who,msg,src='moradores',sys=false,alert=false){
+  const body=document.getElementById('chat-body');
+  const now=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+
+  if(sys){
+    const el=document.createElement('div');
+    el.className=`msg-sys${alert?' alert':''}`;
+    el.textContent=msg;
+    body.appendChild(el);
+    body.scrollTop=body.scrollHeight;
+    return;
+  }
+
+  const typing=document.createElement('div');
+  typing.className='msg msg-typing';
+  typing.innerHTML=`<div class="msg-who">${who}</div><div class="msg-bubble">digitando…</div>`;
+  body.appendChild(typing);
+  body.scrollTop=body.scrollHeight;
+
+  setTimeout(()=>{
+    typing.remove();
+    const el=document.createElement('div');
+    el.className='msg';
+    el.innerHTML=`<div class="msg-who">${who}<span class="msg-src ${src}">${SRC_LABELS[src]||src}</span></div><div class="msg-bubble">${msg}</div><div class="msg-time">${now}</div>`;
+    body.appendChild(el);
+    body.scrollTop=body.scrollHeight;
+    // Limita histórico a 80 msgs
+    const all=body.querySelectorAll('.msg,.msg-sys');
+    if(all.length>80)all[0].remove();
+  },900+Math.random()*700);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAPA
+// ═══════════════════════════════════════════════════════════════
+let _map=null;
+const _src=new Set(),_lyr=new Set(),_pop=new Map();
+let _pulse=null,_pst=0;
+const _sevMap=new Map();
+
+const STYLES=[
+  'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+  'https://tiles.openfreemap.org/styles/positron',
+  'https://demotiles.maplibre.org/style.json',
+];
+
+async function initMap(){
+  let style=null;
+  for(const u of STYLES){try{const r=await fetch(u,{signal:AbortSignal.timeout(4000)});if(r.ok){style=u;break}}catch(e){}}
+  if(!style)style={version:8,sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256}},layers:[{id:'bg',type:'background',paint:{'background-color':'#07111c'}},{id:'osm',type:'raster',source:'osm',paint:{'raster-opacity':.12,'raster-saturation':-1}}]};
+  return new Promise(res=>{
+    _map=new maplibregl.Map({
+      container:'map',style,
+      center:[-46.636,-23.548],
+      zoom:10.5,minZoom:9.2,maxZoom:16,
+      maxBounds:[[-47.30,-24.10],[-45.90,-23.00]],
+      attributionControl:false,pitchWithRotate:false,
+    });
+    _map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
+    _map.addControl(new maplibregl.NavigationControl({showCompass:false}),'bottom-left');
+    _map.on('error',e=>console.warn('GL:',e.error?.message||e));
+    _map.on('load',()=>res(_map));
+  });
+}
+
+function sevColor(sev,def){return sev==='crit'?'#ff3a5c':sev==='warn'?'#ffb020':def}
+
+function normRadius(val,lid){
+  const r={temperatura:[18,40],poluicao:[10,130],ar:[4,80],agua:[0,25],transito:[5,99],energia:[5,45],lixo:[38,2200],vegetacao:[0,65],solo:[0,58],saude:[80,420]};
+  const[lo,hi]=r[lid]||[0,100];
+  return 10+Math.min(1,Math.max(0,(val-lo)/(hi-lo)))*25;
+}
+function sSrc(id,spec){try{if(!_map.getSource(id))_map.addSource(id,spec)}catch(e){}}
+function sLyr(spec){try{if(!_map.getLayer(spec.id))_map.addLayer(spec)}catch(e){}}
+
+function addBlob(anchor,state,layerCfg){
+  const val=anchor.value(state),sev=anchor.severity(state);
+  const col=sevColor(sev,layerCfg.color);
+  const r=normRadius(val,anchor.layer);
+  const sid=`src-${anchor.id}`;
+  sSrc(sid,{type:'geojson',data:{type:'Feature',geometry:{type:'Point',coordinates:[anchor.lng,anchor.lat]},properties:{}}});
+  // Sem halo — apenas dot central que pulsa
+  sLyr({id:`dot-${anchor.id}`,type:'circle',source:sid,paint:{
+    'circle-radius':['interpolate',['linear'],['zoom'],8,sev==='crit'?5:sev==='warn'?4:3.5,15,sev==='crit'?12:sev==='warn'?9:7],
+    'circle-color':col,
+    'circle-opacity':sev==='ok'?.55:sev==='warn'?.80:1,
+    'circle-stroke-width':sev==='ok'?1:2,
+    'circle-stroke-color':sev==='ok'?'rgba(255,255,255,.2)':'rgba(255,255,255,.6)',
+    'circle-stroke-opacity':.8,
+    'circle-pitch-alignment':'map'
+  }});
+  sLyr({id:`lbl-${anchor.id}`,type:'symbol',source:sid,layout:{'text-field':anchor.nome,'text-font':['Noto Sans Regular','Open Sans Regular'],'text-size':['interpolate',['linear'],['zoom'],10,0,11.5,9,14,11],'text-offset':[0,-1.8],'text-anchor':'bottom','text-max-width':12},paint:{'text-color':'#dde6f0','text-halo-color':'rgba(0,0,0,.92)','text-halo-width':1.5,'text-opacity':['interpolate',['linear'],['zoom'],10,0,11,.55,14,1]}});
+  _src.add(sid);
+  ['dot','lbl'].forEach(p=>{const id=`${p}-${anchor.id}`;_lyr.add(id);if(p==='dot')_sevMap.set(id,sev);});
+
+  _map.on('click',`dot-${anchor.id}`,()=>{
+    closePopups();
+    const sc=sev==='crit'?'ps-crit':sev==='warn'?'ps-warn':'ps-ok';
+    const sl=sev==='crit'?'CRÍTICO':sev==='warn'?'ATENÇÃO':'NORMAL';
+    const reports=anchor.reports(state);
+    const repHtml=reports.map(rep=>`<div class="pop-report ${sev==='crit'?'crit':sev==='warn'?'warn':''}">
+      ${rep.text}
+      <div class="pr-src">${SRC_LABELS[rep.src]||rep.src} · ${anchor.bairro}</div>
+    </div>`).join('');
+    const html=`<div class="pop">
+      <div class="pop-hd">
+        <span class="pop-ic">${layerCfg.icon}</span>
+        <div><div class="pop-name">${anchor.nome}</div><div class="pop-sub">${anchor.bairro} · ${layerCfg.nome}</div></div>
+        <span class="pop-sev ${sc}">${sl}</span>
+      </div>
+      <div class="pop-reports">${repHtml}</div>
+      <div class="pop-ft">fonte: ${layerCfg.fonte}</div>
+    </div>`;
+    const p=new maplibregl.Popup({closeButton:true,closeOnClick:false,offset:14}).setLngLat([anchor.lng,anchor.lat]).setHTML(html).addTo(_map);
+    _pop.set(anchor.id,p);p.on('close',()=>_pop.delete(anchor.id));
+  });
+  _map.on('mouseenter',`dot-${anchor.id}`,()=>{_map.getCanvas().style.cursor='crosshair'});
+  _map.on('mouseleave',`dot-${anchor.id}`,()=>{_map.getCanvas().style.cursor=''});
+}
+
+function addGreenBlob(gv){
+  const r=gv.area_ha>5000?28:gv.area_ha>1000?20:gv.area_ha>300?14:9;
+  const sid=`src-${gv.id}`;
+  sSrc(sid,{type:'geojson',data:{type:'Feature',geometry:{type:'Point',coordinates:[gv.lng,gv.lat]},properties:{}}});
+  sLyr({id:`gv-dot-${gv.id}`,type:'circle',source:sid,paint:{
+    'circle-radius':['interpolate',['linear'],['zoom'],8,r*.4,15,r],
+    'circle-color':'#22c55e','circle-opacity':.7,
+    'circle-stroke-width':1.5,'circle-stroke-color':'rgba(0,0,0,.4)',
+    'circle-pitch-alignment':'map'
+  }});
+  sLyr({id:`gv-lbl-${gv.id}`,type:'symbol',source:sid,layout:{'text-field':gv.nome,'text-font':['Noto Sans Regular','Open Sans Regular'],'text-size':['interpolate',['linear'],['zoom'],10,0,11.5,8,14,10],'text-offset':[0,-1.8],'text-anchor':'bottom','text-max-width':10},paint:{'text-color':'#86efac','text-halo-color':'rgba(0,0,0,.9)','text-halo-width':1.5,'text-opacity':['interpolate',['linear'],['zoom'],10,0,11,.5,14,.92]}});
+  _src.add(sid);['gv-dot','gv-lbl'].forEach(p=>{const id=`${p}-${gv.id}`;_lyr.add(id);if(p==='gv-dot')_sevMap.set(id,'ok');});
+  _map.on('click',`gv-dot-${gv.id}`,()=>{
+    closePopups();
+    const html=`<div class="pop"><div class="pop-hd"><span class="pop-ic">🌿</span><div><div class="pop-name">${gv.nome}</div><div class="pop-sub">Área Protegida · ${gv.area_ha.toLocaleString('pt-BR')} ha</div></div><span class="pop-sev ps-ok">ATIVO</span></div><div class="pop-reports"><div class="pop-report">${gv.area_ha.toLocaleString('pt-BR')} hectares preservados</div></div><div class="pop-ft">fonte: PMSP · SMA · MapBiomas</div></div>`;
+    const p=new maplibregl.Popup({closeButton:true,closeOnClick:false,offset:14}).setLngLat([gv.lng,gv.lat]).setHTML(html).addTo(_map);
+    _pop.set(gv.id,p);p.on('close',()=>_pop.delete(gv.id));
+  });
+  _map.on('mouseenter',`gv-dot-${gv.id}`,()=>{_map.getCanvas().style.cursor='crosshair'});
+  _map.on('mouseleave',`gv-dot-${gv.id}`,()=>{_map.getCanvas().style.cursor=''});
+}
+
+function getLayerId(id){
+  for(const p of ['gv-dot-','gv-lbl-','dot-','lbl-'])
+    if(id.startsWith(p))return id.slice(p.length);
+  return null;
+}
+
+function renderLayer(lid){
+  clearLayer(lid);
+  const cfg=LAYER_MAP[lid];
+  (ANCHORS_BY_LAYER[lid]||[]).forEach(a=>addBlob(a,STATE,cfg));
+  if(lid==='vegetacao')GREEN_AREAS.forEach(gv=>addGreenBlob(gv));
+}
+
+function clearLayer(lid){
+  closePopups();
+  const isVeg=lid==='vegetacao';
+  const rem=[];
+  _lyr.forEach(id=>{
+    const aid=getLayerId(id);if(!aid)return;
+    const a=ANCHOR_MAP[aid];
+    const gv=isVeg?GREEN_AREAS.find(g=>g.id===aid):null;
+    if((a&&a.layer===lid)||gv)rem.push(id);
+  });
+  rem.forEach(id=>{_sevMap.delete(id);try{if(_map.getLayer(id))_map.removeLayer(id)}catch(e){}_lyr.delete(id)});
+  const srm=[];
+  _src.forEach(id=>{
+    const aid=id.replace('src-','');
+    const a=ANCHOR_MAP[aid];
+    const gv=isVeg?GREEN_AREAS.find(g=>g.id===aid):null;
+    if((a&&a.layer===lid)||gv)srm.push(id);
+  });
+  srm.forEach(id=>{try{if(_map.getSource(id))_map.removeSource(id)}catch(e){}_src.delete(id)});
+}
+
+function closePopups(){_pop.forEach(p=>{try{p.remove()}catch(e){}});_pop.clear()}
+
+// ── Zoneamento ──────────────────────────────────────────────────
+let _activeZone=null;
+const _zSrc=new Set(),_zLyr=new Set();
+function clearZones(){_zLyr.forEach(id=>{try{if(_map.getLayer(id))_map.removeLayer(id)}catch(e){}});_zSrc.forEach(id=>{try{if(_map.getSource(id))_map.removeSource(id)}catch(e){}});_zLyr.clear();_zSrc.clear();}
+function renderZone(type){
+  clearZones();_activeZone=type;if(type==='none')return;
+  const isD=type==='desigualdade';
+  const zones=isD?Object.entries(ZONE_DATA).flatMap(([t,arr])=>arr.map(z=>({...z,type:t}))):(ZONE_DATA[type]||[]).map(z=>({...z,type}));
+  zones.forEach((z,i)=>{
+    const sid=`z-src-${type}-${i}`,lid=`z-fill-${type}-${i}`,lid2=`z-line-${type}-${i}`;
+    let fc;
+    if(isD){const idh=z.idh||.7;fc=idh>=.85?'#22c55e':idh>=.78?'#fbbf24':idh>=.72?'#f97316':'#ef4444';}
+    else fc=ZONE_COLORS[z.type]||'#aaa';
+    const data={type:'Feature',properties:{nome:z.nome,idh:z.idh},geometry:{type:'Polygon',coordinates:[z.coords]}};
+    try{if(!_map.getSource(sid))_map.addSource(sid,{type:'geojson',data})}catch(e){}
+    try{if(!_map.getLayer(lid))_map.addLayer({id:lid,type:'fill',source:sid,paint:{'fill-color':fc,'fill-opacity':.17}})}catch(e){}
+    try{if(!_map.getLayer(lid2))_map.addLayer({id:lid2,type:'line',source:sid,paint:{'line-color':fc,'line-opacity':.5,'line-width':1.2}})}catch(e){}
+    _zSrc.add(sid);_zLyr.add(lid);_zLyr.add(lid2);
+    _map.on('click',lid,(e)=>{
+      closePopups();
+      const sc=z.idh>=.85?'ps-ok':z.idh>=.75?'ps-warn':'ps-crit';
+      const idhTxt=isD?`IDH ${z.idh} — ${z.idh>=.85?'Alta qualidade de vida':z.idh>=.75?'IDH médio':'Vulnerabilidade elevada'}`:`Zona ${z.type}`;
+      const html=`<div class="pop"><div class="pop-hd"><span class="pop-ic">🗺️</span><div><div class="pop-name">${z.nome}</div><div class="pop-sub">${z.type} · RMSP</div></div><span class="pop-sev ${sc}">${isD?`IDH ${z.idh}`:z.type.toUpperCase()}</span></div><div class="pop-reports"><div class="pop-report">${idhTxt}</div></div><div class="pop-ft">fonte: LabCidade FAU-USP · IBGE 2023</div></div>`;
+      const p=new maplibregl.Popup({closeButton:true,closeOnClick:false,maxWidth:'260px'}).setLngLat(e.lngLat).setHTML(html).addTo(_map);
+      _pop.set(`z-${type}-${i}`,p);p.on('close',()=>_pop.delete(`z-${type}-${i}`));
+    });
+    _map.on('mouseenter',lid,()=>{_map.getCanvas().style.cursor='pointer'});
+    _map.on('mouseleave',lid,()=>{_map.getCanvas().style.cursor=''});
+  });
+}
+
+// ── Pulse — apenas dot, sem halo ───────────────────────────────
+// ok = fraco | warn = médio | crit = rápido intenso
+function startPulse(){
+  if(_pulse)return;
+  _pulse=setInterval(()=>{
+    if(!_map)return;
+    _pst++;
+    _sevMap.forEach((sev,id)=>{
+      if(sev==='ok')return;
+      const isDot=id.startsWith('dot-')||id.startsWith('gv-dot-');
+      if(!isDot)return;
+      const isCrit=sev==='crit';
+      const period=isCrit?3:8;
+      const sin=.5+.5*Math.sin(_pst*Math.PI/period);
+      const base=isCrit?.7:.55;
+      const amp=isCrit?.3:.25;
+      try{if(_map.getLayer(id))_map.setPaintProperty(id,'circle-opacity',base+amp*sin);}catch(e){}
+    });
+  },350);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UI
+// ═══════════════════════════════════════════════════════════════
+const active=new Set(); // TODOS DESLIGADOS no início — experiência investigativa
+
+let _ready=false;
+
+function buildLayers(){
+  const ul=document.getElementById('layer-list');
+  LAYERS.forEach(l=>{
+    const item=document.createElement('div');
+    item.className='li off';
+    item.dataset.id=l.id;
+    item.style.setProperty('--lc',l.color);
+    item.innerHTML=`<span class="l-ico">${l.icon}</span><div class="l-body"><span class="l-name">${l.nome}</span><span class="l-stat" id="stat-${l.id}">—</span><span class="l-src">fonte: ${l.fonte}</span></div><div class="tog"></div>`;
+    item.addEventListener('click',()=>toggleLayer(l.id));
+    ul.appendChild(item);
+  });
+}
+
+function toggleLayer(id){
+  if(active.has(id)){
+    active.delete(id);
+    if(_ready)clearLayer(id);
+    // Rebuild signal pool
+    _signalPool=[];_signalIdx=0;
+  }else{
+    active.add(id);
+    if(_ready)renderLayer(id);
+    _signalPool=[];_signalIdx=0;
+  }
+  syncLayerUI();
+  document.getElementById('act-ct').textContent=active.size;
+}
+
+function syncLayerUI(){
+  document.querySelectorAll('.li').forEach(el=>{
+    const id=el.dataset.id;
+    const on=active.has(id);
+    el.className=`li ${on?'on':'off'}`;
+    el.querySelector('.tog').className=`tog ${on?'on':''}`;
+    const stat=document.getElementById(`stat-${id}`);
+    if(stat)stat.textContent=on?LAYER_MAP[id].stat(STATE):'—';
+  });
+  document.getElementById('act-ct').textContent=active.size;
+}
+
+function buildZoneButtons(){
+  document.querySelectorAll('.z-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const zone=btn.dataset.zone;
+      if(_activeZone===zone&&zone!=='none'){clearZones();_activeZone=null;document.querySelectorAll('.z-btn').forEach(b=>b.classList.remove('act'));document.getElementById('z-legend').style.display='none';return;}
+      document.querySelectorAll('.z-btn').forEach(b=>b.classList.remove('act'));
+      btn.classList.add('act');
+      if(_ready)renderZone(zone);
+      const leg=document.getElementById('z-legend');
+      if(zone==='desigualdade'){
+        leg.innerHTML='IDH por região (LabCidade / IBGE):<br><span style="color:#22c55e">■</span> Alto ≥ 0.85 &nbsp; <span style="color:#fbbf24">■</span> Médio 0.78–0.84<br><span style="color:#f97316">■</span> Baixo 0.72–0.77 &nbsp; <span style="color:#ef4444">■</span> Vulnerável &lt; 0.72';
+        leg.style.display='block';
+      }else{leg.style.display='none';}
+    });
+  });
+}
+
+function updateUI(){
+  active.forEach(id=>{const el=document.getElementById(`stat-${id}`);if(el)el.textContent=LAYER_MAP[id].stat(STATE);});
+  const wrap=document.getElementById('alerts');
+  wrap.innerHTML='';
+  getAlerts().forEach(a=>{const d=document.createElement('div');d.className=`al ${a.sev}`;d.textContent=a.txt;wrap.appendChild(d);});
+  document.getElementById('clock').textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+function refresh(){
+  if(!_ready)return;
+  active.forEach(id=>{clearLayer(id);renderLayer(id);});
+  updateUI();
+}
+
+// Inicializa max-height das seções colapsáveis
+function initSecs(){
+  document.querySelectorAll('.sec-body').forEach(b=>{b.style.maxHeight=b.scrollHeight+'px';});
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',async()=>{
+  buildLayers();
+  buildZoneButtons();
+  document.getElementById('anc-ct').textContent=ANCHORS.length;
+  setInterval(()=>document.getElementById('clock').textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),1000);
+
+  try{
+    await initMap();
+    _ready=true;
+    document.getElementById('map-loader').style.display='none';
+    document.getElementById('h-status').textContent='ONLINE';
+    document.getElementById('h-status').className='on';
+    startPulse();
+    tick();
+    updateUI();
+    initSecs();
+    // Crise começa após 3s
+    setTimeout(startCrisis,3000);
+    // Tick periódico
+    setInterval(()=>{tick();refresh();},TICK_INTERVAL);
+    // Sinais surgem a cada ~1 min
+    setInterval(emitSignal,SIGNAL_INTERVAL);
+  }catch(e){
+    document.getElementById('h-status').textContent='ERRO';
+    console.error(e);
+  }
+});
+</script>
+</body>
+</html>
