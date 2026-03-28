@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URBAN LENS — Simulador de Crises Urbanas</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/maplibre-gl@4.1.3/dist/maplibre-gl.css" rel="stylesheet">
+  <script src="https://unpkg.com/maplibre-gl@4.1.3/dist/maplibre-gl.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="data/crises.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #040d1a;
+      --panel:    #060f1e;
+      --panel2:   #071525;
+      --border:   #0d2535;
+      --border2:  #0a3040;
+      --accent:   #00ffcc;
+      --accent2:  #00bfff;
+      --accent3:  #0080ff;
+      --warn:     #ffcc00;
+      --danger:   #ff3b3b;
+      --critical: #ff0055;
+      --text:     #c8e8f0;
+      --text-dim: #3a6070;
+      --glow-g:   rgba(0,255,204,0.15);
+      --glow-b:   rgba(0,191,255,0.12);
+    }
+
+    html, body {
+      height: 100vh;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 2px,
+        rgba(0,255,204,0.015) 2px, rgba(0,255,204,0.015) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.6) 100%);
+      pointer-events: none;
+      z-index: 9998;
+    }
+
+    /* ── GRID PRINCIPAL ── */
+    body {
+      display: grid;
+      grid-template-rows: 52px 1fr;
+      grid-template-columns: 280px 1fr 340px;
+    }
+
+    /* ── HEADER ── */
+    #header {
+      grid-column: 1 / -1;
+      grid-row: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 2px 20px rgba(0,255,204,0.05), inset 0 -1px 0 rgba(0,255,204,0.08);
+      z-index: 100;
+    }
+
+    .hdr-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .hdr-logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem;
+      font-weight: 900;
+      letter-spacing: 0.25em;
+      color: var(--accent);
+      text-shadow: 0 0 15px var(--accent);
+    }
+
+    .hdr-sep { color: var(--text-dim); font-size: 0.6rem; }
+
+    .hdr-crisis-name {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--warn);
+      text-shadow: 0 0 8px var(--warn);
+      max-width: 300px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .hdr-center {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .hdr-phase-badge {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 4px 12px;
+      border: 1px solid var(--accent);
+      border-radius: 2px;
+      color: var(--accent);
+      box-shadow: 0 0 8px var(--glow-g), inset 0 0 8px var(--glow-g);
+    }
+
+    .hdr-timer {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--warn);
+      text-shadow: 0 0 12px var(--warn);
+      min-width: 60px;
+      text-align: center;
+    }
+
+    .hdr-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .hdr-session {
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+    }
+
+    .hdr-region {
+      font-size: 0.62rem;
+      color: var(--accent2);
+      max-width: 200px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── PAINÉIS ── */
+    #left {
+      grid-column: 1;
+      grid-row: 2;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: fadeIn 0.4s ease;
+    }
+
+    #center {
+      grid-column: 2;
+      grid-row: 2;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #right {
+      grid-column: 3;
+      grid-row: 2;
+      background: var(--panel);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: fadeIn 0.4s 0.1s ease both;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── PANEL HEADER ── */
+    .panel-hdr {
+      padding: 7px 12px;
+      background: var(--panel2);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.58rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .panel-hdr-badge {
+      font-size: 0.55rem;
+      background: rgba(0,255,204,0.12);
+      border: 1px solid rgba(0,255,204,0.3);
+      border-radius: 2px;
+      padding: 2px 6px;
+      color: var(--accent);
+    }
+
+    /* ── KPI GAUGES ── */
+    #kpi-section {
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .kpi-gauge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: default;
+    }
+
+    .kpi-svg {
+      position: relative;
+      width: 72px;
+      height: 72px;
+    }
+
+    .kpi-svg svg { transform: rotate(-90deg); }
+
+    .kpi-track { fill: none; stroke: var(--border); stroke-width: 6; }
+    .kpi-fill  { fill: none; stroke-width: 6; stroke-linecap: round;
+                 transition: stroke-dashoffset 0.5s ease, stroke 0.5s ease; }
+
+    .kpi-value-wrap {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .kpi-num {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .kpi-unit {
+      font-size: 0.42rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    .kpi-label {
+      font-size: 0.52rem;
+      color: var(--text-dim);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    /* ── LAYER BARS ── */
+    #layers-section {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .layer-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 5px 8px;
+      border-radius: 2px;
+      border: 1px solid transparent;
+      transition: background 0.2s, border-color 0.2s;
+      user-select: none;
+    }
+
+    .layer-row:hover { background: rgba(0,255,204,0.04); border-color: rgba(0,255,204,0.15); }
+    .layer-row.active { background: rgba(0,255,204,0.06); border-color: rgba(0,255,204,0.25); }
+    .layer-row.inactive { opacity: 0.35; }
+
+    .layer-icon { font-size: 0.9rem; width: 18px; text-align: center; }
+    .layer-name { font-size: 0.58rem; color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .layer-bar-wrap {
+      flex: 1.5;
+      height: 5px;
+      background: var(--panel2);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .layer-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.6s ease;
+      min-width: 2px;
+    }
+
+    .layer-val {
+      font-size: 0.52rem;
+      color: var(--text-dim);
+      min-width: 18px;
+      text-align: right;
+    }
+
+    /* ── ANCHORS TABLE ── */
+    #anchors-section {
+      flex-shrink: 0;
+      border-bottom: 1px solid var(--border);
+      overflow-y: auto;
+      max-height: 200px;
+    }
+
+    .anchor-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.56rem;
+    }
+
+    .anchor-table thead th {
+      padding: 4px 6px;
+      color: var(--text-dim);
+      font-size: 0.5rem;
+      letter-spacing: 0.1em;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel2);
+      position: sticky;
+      top: 0;
+    }
+
+    .anchor-table tbody tr {
+      transition: background 0.2s;
+      border-bottom: 1px solid rgba(13,37,53,0.5);
+    }
+
+    .anchor-table tbody tr.layer-active-row { background: rgba(0,255,204,0.04); }
+    .anchor-table tbody tr.layer-inactive-row { opacity: 0.3; }
+
+    .anchor-table td {
+      padding: 4px 6px;
+      vertical-align: middle;
+      max-width: 80px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .anchor-table td:first-child { color: var(--text); }
+    .anchor-table td:nth-child(2) { text-align: center; }
+
+    .status-badge {
+      font-size: 0.46rem;
+      padding: 2px 5px;
+      border-radius: 2px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .status-NORMAL   { background: rgba(0,255,100,0.15); color: #00ff64; border: 1px solid rgba(0,255,100,0.3); }
+    .status-ATENÇÃO  { background: rgba(255,204,0,0.12); color: var(--warn); border: 1px solid rgba(255,204,0,0.3); }
+    .status-ALERTA   { background: rgba(255,120,0,0.15); color: #ff7800; border: 1px solid rgba(255,120,0,0.3); }
+    .status-CRÍTICO  { background: rgba(255,59,59,0.15); color: var(--danger); border: 1px solid rgba(255,59,59,0.3); }
+    .status-COLAPSO  { background: rgba(255,0,85,0.18); color: var(--critical); border: 1px solid rgba(255,0,85,0.4);
+                       animation: blinkBadge 0.9s infinite; }
+    @keyframes blinkBadge { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ── PHASE PROGRESS ── */
+    #phase-section {
+      padding: 10px 12px;
+      flex-shrink: 0;
+    }
+
+    .phase-dots {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 6px;
+    }
+
+    .phase-dot {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      border: 2px solid var(--text-dim);
+      background: transparent;
+      transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+      position: relative;
+      z-index: 1;
+      flex-shrink: 0;
+    }
+
+    .phase-dot.past  { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 6px var(--accent); }
+    .phase-dot.curr  { background: var(--warn); border-color: var(--warn); box-shadow: 0 0 10px var(--warn), 0 0 20px rgba(255,204,0,0.3); animation: pulseDot 1.2s infinite; }
+    .phase-dot.future{ background: transparent; border-color: var(--text-dim); }
+
+    @keyframes pulseDot { 0%,100%{transform:scale(1)} 50%{transform:scale(1.3)} }
+
+    .phase-line {
+      flex: 1;
+      height: 2px;
+      background: var(--border);
+      margin: 0 2px;
+    }
+
+    .phase-line.lit { background: var(--accent); }
+
+    .phase-title-text {
+      font-size: 0.6rem;
+      color: var(--warn);
+      letter-spacing: 0.1em;
+      text-align: center;
+    }
+
+    .phase-desc {
+      font-size: 0.54rem;
+      color: var(--text-dim);
+      margin-top: 3px;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    /* ── MAP ── */
+    #map {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #hex-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* ── CHART OVERLAY ── */
+    #chart-overlay {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 130px;
+      background: rgba(4,13,26,0.88);
+      border-top: 1px solid var(--border);
+      padding: 8px 16px 8px 8px;
+      z-index: 3;
+    }
+
+    #chart-overlay .chart-label {
+      font-size: 0.52rem;
+      color: var(--text-dim);
+      letter-spacing: 0.15em;
+      margin-bottom: 4px;
+    }
+
+    #severityChart { width: 100% !important; height: 90px !important; }
+
+    /* ── MAPLIBRE POPUP ── */
+    .maplibregl-popup-content {
+      background: #060f1e !important;
+      border: 1px solid #0d2535 !important;
+      border-radius: 3px !important;
+      box-shadow: 0 0 20px rgba(0,255,204,0.15) !important;
+      padding: 12px !important;
+      font-family: 'Share Tech Mono', monospace !important;
+      color: #c8e8f0 !important;
+      max-width: 240px !important;
+    }
+
+    .maplibregl-popup-tip { display: none !important; }
+    .maplibregl-popup-close-button { color: #3a6070 !important; font-size: 1rem !important; }
+
+    .popup-header { font-size: 0.6rem; color: #00bfff; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .popup-location { font-size: 0.72rem; color: #c8e8f0; font-weight: 700; margin-bottom: 4px; }
+    .popup-description { font-size: 0.58rem; color: #3a6070; line-height: 1.4; margin-bottom: 8px; border-bottom: 1px solid #0d2535; padding-bottom: 6px; }
+    .popup-value { font-family: 'Orbitron', sans-serif; font-size: 0.85rem; color: #00ffcc; margin-bottom: 2px; }
+    .popup-delta { font-size: 0.58rem; color: #ffcc00; margin-bottom: 4px; }
+    .popup-status { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.1em; }
+
+    /* ── RIGHT PANEL — SYSTEMS ── */
+    #systems-section {
+      padding: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .system-card {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .system-card.active {
+      border-color: rgba(0,255,204,0.4);
+      box-shadow: inset 0 0 12px rgba(0,255,204,0.05);
+    }
+
+    .system-card-icon { font-size: 1.4rem; }
+
+    .system-card-name {
+      font-size: 0.56rem;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    .system-card-status { }
+
+    .system-card-bar-wrap {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 2px;
+    }
+
+    .system-card-bar {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.5s ease;
+    }
+
+    /* ── TERMINAL ── */
+    #terminal-section {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border-bottom: 1px solid var(--border);
+      min-height: 0;
+    }
+
+    #terminal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      background: #020810;
+      font-size: 0.62rem;
+      line-height: 1.6;
+    }
+
+    .terminal-line {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+
+    .term-ts { color: #1a3a50; flex-shrink: 0; }
+
+    .term-text { word-break: break-all; }
+
+    .term-sensor   { color: var(--accent2); }
+    .term-alerta   { color: var(--warn); }
+    .term-colapso  { color: var(--critical); animation: blinkText 0.8s infinite; }
+    .term-emergencia { color: #ff44aa; }
+    .term-incendio { color: #ff6600; }
+    .term-sistema  { color: var(--text-dim); }
+    .term-satelite { color: #aa88ff; }
+
+    @keyframes blinkText { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .term-cursor {
+      display: inline-block;
+      color: var(--accent);
+      animation: blinkCursor 0.7s infinite;
+    }
+    @keyframes blinkCursor { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ── RELATOS ── */
+    #relatos-section {
+      flex-shrink: 0;
+      height: 200px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #relatos-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .relato-card {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 2px;
+      padding: 6px 8px;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .relato-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+
+    .relato-fonte-badge {
+      font-size: 0.46rem;
+      padding: 1px 5px;
+      border-radius: 2px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .fonte-whatsapp    { background: rgba(37,211,102,0.2); color: #25d366; border: 1px solid rgba(37,211,102,0.3); }
+    .fonte-twitter     { background: rgba(29,161,242,0.2); color: #1da1f2; border: 1px solid rgba(29,161,242,0.3); }
+    .fonte-radio       { background: rgba(255,150,0,0.2);  color: #ff9600; border: 1px solid rgba(255,150,0,0.3); }
+    .fonte-jornal      { background: rgba(200,220,255,0.15); color: #c8dcff; border: 1px solid rgba(200,220,255,0.3); }
+    .fonte-controle    { background: rgba(0,255,204,0.12); color: var(--accent); border: 1px solid rgba(0,255,204,0.3); }
+    .fonte-instagram   { background: rgba(225,48,108,0.2); color: #e1306c; border: 1px solid rgba(225,48,108,0.3); }
+    .fonte-defesacivil { background: rgba(255,204,0,0.15); color: var(--warn); border: 1px solid rgba(255,204,0,0.3); }
+    .fonte-saude       { background: rgba(0,191,255,0.15); color: var(--accent2); border: 1px solid rgba(0,191,255,0.3); }
+
+    .relato-layer-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .relato-fonte-name { font-size: 0.56rem; color: var(--text); flex: 1; }
+    .relato-ts         { font-size: 0.46rem; color: var(--text-dim); }
+
+    .relato-text {
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: var(--panel); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+    /* Marker pulse */
+    .anchor-marker {
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3);
+      cursor: pointer;
+      transition: opacity 0.4s;
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header id="header">
+  <div class="hdr-left">
+    <div class="hdr-logo">⬡ URBAN LENS</div>
+    <div class="hdr-sep">│</div>
+    <div class="hdr-crisis-name" id="hdrCrisisName">—</div>
+  </div>
+  <div class="hdr-center">
+    <div class="hdr-phase-badge" id="hdrPhase">FASE 1/5</div>
+    <div class="hdr-timer" id="hdrTimer">2:00</div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-region" id="hdrRegion"></div>
+    <div class="hdr-session" id="hdrSession"></div>
+  </div>
+</header>
+
+<!-- PAINEL ESQUERDO -->
+<aside id="left">
+  <div class="panel-hdr">
+    KPI SISTEMA
+    <span class="panel-hdr-badge" id="kpiStatus">MONITORANDO</span>
+  </div>
+
+  <!-- Gauges -->
+  <div id="kpi-section">
+    <div class="kpi-gauge">
+      <div class="kpi-svg">
+        <svg viewBox="0 0 72 72" width="72" height="72">
+          <circle class="kpi-track" cx="36" cy="36" r="28"/>
+          <circle class="kpi-fill" id="gCobertura" cx="36" cy="36" r="28"
+                  stroke-dasharray="175.93" stroke-dashoffset="175.93" stroke="#00ffcc"/>
+        </svg>
+        <div class="kpi-value-wrap">
+          <div class="kpi-num" id="vCobertura">0%</div>
+        </div>
+      </div>
+      <div class="kpi-label">COBERT.</div>
+    </div>
+    <div class="kpi-gauge">
+      <div class="kpi-svg">
+        <svg viewBox="0 0 72 72" width="72" height="72">
+          <circle class="kpi-track" cx="36" cy="36" r="28"/>
+          <circle class="kpi-fill" id="gSeveridade" cx="36" cy="36" r="28"
+                  stroke-dasharray="175.93" stroke-dashoffset="175.93" stroke="#ffcc00"/>
+        </svg>
+        <div class="kpi-value-wrap">
+          <div class="kpi-num" id="vSeveridade">0</div>
+        </div>
+      </div>
+      <div class="kpi-label">SEVERID.</div>
+    </div>
+    <div class="kpi-gauge">
+      <div class="kpi-svg">
+        <svg viewBox="0 0 72 72" width="72" height="72">
+          <circle class="kpi-track" cx="36" cy="36" r="28"/>
+          <circle class="kpi-fill" id="gFase" cx="36" cy="36" r="28"
+                  stroke-dasharray="175.93" stroke-dashoffset="175.93" stroke="#0080ff"/>
+        </svg>
+        <div class="kpi-value-wrap">
+          <div class="kpi-num" id="vFase">1</div>
+        </div>
+      </div>
+      <div class="kpi-label">FASE</div>
+    </div>
+    <div class="kpi-gauge">
+      <div class="kpi-svg">
+        <svg viewBox="0 0 72 72" width="72" height="72">
+          <circle class="kpi-track" cx="36" cy="36" r="28"/>
+          <circle class="kpi-fill" id="gSinais" cx="36" cy="36" r="28"
+                  stroke-dasharray="175.93" stroke-dashoffset="175.93" stroke="#00bfff"/>
+        </svg>
+        <div class="kpi-value-wrap">
+          <div class="kpi-num" id="vSinais">0</div>
+        </div>
+      </div>
+      <div class="kpi-label">SINAIS</div>
+    </div>
+  </div>
+
+  <!-- Layer bars -->
+  <div class="panel-hdr" style="font-size:0.52rem">LAYERS — CLIQUE PARA ATIVAR</div>
+  <div id="layers-section"></div>
+
+  <!-- Anchors table -->
+  <div class="panel-hdr" style="font-size:0.52rem">ÂNCORAS CRÍTICAS</div>
+  <div id="anchors-section">
+    <table class="anchor-table">
+      <thead>
+        <tr>
+          <th>Ponto</th>
+          <th>●</th>
+          <th>Valor</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="anchorsBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Phase progress -->
+  <div id="phase-section">
+    <div class="phase-dots" id="phaseDots"></div>
+    <div class="phase-title-text" id="phaseTitle">—</div>
+    <div class="phase-desc" id="phaseDesc">—</div>
+  </div>
+</aside>
+
+<!-- PAINEL CENTRAL -->
+<main id="center">
+  <div id="map"></div>
+
+  <!-- Hex overlay -->
+  <svg id="hex-overlay" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="hexPat" x="0" y="0" width="52" height="60" patternUnits="userSpaceOnUse">
+        <polygon points="26,1 51,15 51,45 26,59 1,45 1,15"
+                 fill="none" stroke="rgba(0,255,204,0.04)" stroke-width="1"/>
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#hexPat)"/>
+  </svg>
+
+  <!-- Chart overlay -->
+  <div id="chart-overlay">
+    <div class="chart-label">SEVERIDADE POR LAYER — EVOLUÇÃO DE FASES</div>
+    <canvas id="severityChart"></canvas>
+  </div>
+</main>
+
+<!-- PAINEL DIREITO -->
+<aside id="right">
+  <div class="panel-hdr">
+    SISTEMAS PRIMÁRIOS
+    <span class="panel-hdr-badge" id="sysStatus">—</span>
+  </div>
+
+  <!-- System cards -->
+  <div id="systems-section"></div>
+
+  <!-- Terminal -->
+  <div class="panel-hdr" style="font-size:0.52rem">
+    TERMINAL TÉCNICO
+    <span class="panel-hdr-badge" id="termBadge">ONLINE</span>
+  </div>
+  <div id="terminal-section">
+    <div id="terminal-body"></div>
+  </div>
+
+  <!-- Relatos -->
+  <div class="panel-hdr" style="font-size:0.52rem">
+    RELATOS
+    <span class="panel-hdr-badge" id="relatoCount">0</span>
+  </div>
+  <div id="relatos-section">
+    <div id="relatos-body"></div>
+  </div>
+</aside>
+
+<script>
+'use strict';
+
+// ── LAYER CONFIG ──────────────────────────────────────────────
+const LAYERS = {
+  agua:        { nome: 'Água',        icone: '💧', cor: '#00bfff' },
+  temperatura: { nome: 'Temp.',       icone: '🌡️', cor: '#ff4500' },
+  lixo:        { nome: 'Resíduos',    icone: '🗑️', cor: '#8b4513' },
+  transito:    { nome: 'Trânsito',    icone: '🚗', cor: '#ff6347' },
+  energia:     { nome: 'Energia',     icone: '⚡', cor: '#ffd700' },
+  solo:        { nome: 'Solo',        icone: '🪨', cor: '#8b6914' },
+  saude:       { nome: 'Saúde',       icone: '🏥', cor: '#dc143c' },
+  ar:          { nome: 'Ar',          icone: '💨', cor: '#9400d3' },
+  vegetacao:   { nome: 'Vegetação',   icone: '🌿', cor: '#228b22' },
+  poluicao:    { nome: 'Poluição',    icone: '☁️', cor: '#696969' },
+};
+
+const STATUS_COLORS = {
+  NORMAL:   '#00ff64',
+  ATENÇÃO:  '#ffcc00',
+  ALERTA:   '#ff7800',
+  CRÍTICO:  '#ff3b3b',
+  COLAPSO:  '#ff0055',
+};
+
+// ── STATE ─────────────────────────────────────────────────────
+let crisis = null;
+let currentPhase = 1;
+let activeLayers = new Set();
+let totalSignals = 0;
+let timerInterval = null;
+let timerSeconds = 120;
+let spontaneousTimer = null;
+let map = null;
+let markerObjects = {};
+let popups = {};
+let connectionLines = {};
+let relatos = [];
+let chart = null;
+let cursorLine = null;
+
+// ── INIT ──────────────────────────────────────────────────────
+function init() {
+  const params = new URLSearchParams(window.location.search);
+  const crisisId = parseInt(params.get('crisis')) || 1;
+  const session  = params.get('session') || '??????';
+
+  crisis = CRISES.find(c => c.id === crisisId) || CRISES[0];
+
+  document.title = `URBAN LENS — ${crisis.nome}`;
+  document.getElementById('hdrCrisisName').textContent = crisis.nome;
+  document.getElementById('hdrRegion').textContent     = crisis.regiao;
+  document.getElementById('hdrSession').textContent    = `SID:${session}`;
+  document.getElementById('sysStatus').textContent     = crisis.subtitulo;
+
+  buildLayerBars();
+  buildSystemCards();
+  buildPhaseDots();
+  initMap();
+  initChart();
+
+  addTerminalLine('[SISTEMA] Urban Lens v3.0 inicializado', 'sistema');
+  addTerminalLine(`[SISTEMA] Crise carregada: ${crisis.nome}`, 'sistema');
+  addTerminalLine('[SISTEMA] Aguardando ativação de layers pelo operador...', 'sistema');
+
+  startPhase(1);
+}
+
+// ── LAYER BARS ───────────────────────────────────────────────
+function buildLayerBars() {
+  const container = document.getElementById('layers-section');
+  container.innerHTML = '';
+
+  const allLayers = Object.entries(LAYERS);
+  allLayers.forEach(([key, cfg]) => {
+    const row = document.createElement('div');
+    row.className = 'layer-row inactive';
+    row.id = `layer-row-${key}`;
+    row.innerHTML = `
+      <span class="layer-icon">${cfg.icone}</span>
+      <span class="layer-name">${cfg.nome}</span>
+      <div class="layer-bar-wrap">
+        <div class="layer-bar-fill" id="bar-${key}" style="width:0%;background:${cfg.cor}"></div>
+      </div>
+      <span class="layer-val" id="barval-${key}">—</span>
+    `;
+    row.addEventListener('click', () => toggleLayer(key));
+    container.appendChild(row);
+  });
+}
+
+function toggleLayer(key) {
+  if (activeLayers.has(key)) {
+    activeLayers.delete(key);
+  } else {
+    activeLayers.add(key);
+    const faseData = crisis.fases[currentPhase - 1];
+    fetchRelatos(key);
+    if (faseData.log_tecnico) {
+      faseData.log_tecnico.forEach((line, i) => {
+        if (line.toLowerCase().includes(key.substring(0,3).toUpperCase()) || i === 0) {
+          setTimeout(() => addTerminalLine(line, classifyLog(line)), i * 300);
+        }
+      });
+    }
+  }
+  refreshLayerUI();
+  refreshMarkers();
+  refreshConnectionLines();
+  updateKPIs();
+  updateChart();
+}
+
+function refreshLayerUI() {
+  const allLayers = Object.keys(LAYERS);
+  const faseData  = crisis.fases[currentPhase - 1];
+
+  allLayers.forEach(key => {
+    const row = document.getElementById(`layer-row-${key}`);
+    const bar = document.getElementById(`bar-${key}`);
+    const val = document.getElementById(`barval-${key}`);
+    if (!row) return;
+
+    const isActive   = activeLayers.has(key);
+    const isAffected = crisis.layers_afetados.includes(key);
+    const phaseLayerData = faseData?.layers_ativos?.[key];
+
+    if (isActive) {
+      row.classList.remove('inactive');
+      row.classList.add('active');
+    } else {
+      row.classList.remove('active');
+      row.classList.add('inactive');
+    }
+
+    if (isActive && phaseLayerData) {
+      const maxSev = Math.max(...phaseLayerData);
+      const pct    = (maxSev / 5) * 100;
+      bar.style.width = pct + '%';
+      val.textContent = maxSev;
+    } else {
+      bar.style.width = isAffected ? '8%' : '0%';
+      val.textContent = '—';
+    }
+  });
+}
+
+// ── SYSTEM CARDS ─────────────────────────────────────────────
+function buildSystemCards() {
+  const container = document.getElementById('systems-section');
+  container.innerHTML = '';
+
+  crisis.sistemas_primarios.forEach(sys => {
+    const card = document.createElement('div');
+    card.className = 'system-card';
+    card.id = `syscard-${sys.layer}`;
+    const cfg = LAYERS[sys.layer] || { cor: '#00ffcc' };
+    card.style.borderColor = 'var(--border)';
+    card.innerHTML = `
+      <div class="system-card-icon">${sys.icone}</div>
+      <div class="system-card-name">${sys.nome}</div>
+      <div class="system-card-status">
+        <span class="status-badge status-NORMAL" id="scard-status-${sys.layer}">NORMAL</span>
+      </div>
+      <div class="system-card-bar-wrap">
+        <div class="system-card-bar" id="scard-bar-${sys.layer}" style="width:0%;background:${cfg.cor}"></div>
+      </div>
+    `;
+    card.addEventListener('click', () => toggleLayer(sys.layer));
+    container.appendChild(card);
+  });
+}
+
+function refreshSystemCards() {
+  const faseData = crisis.fases[currentPhase - 1];
+  crisis.sistemas_primarios.forEach(sys => {
+    const card       = document.getElementById(`syscard-${sys.layer}`);
+    const statusBadge= document.getElementById(`scard-status-${sys.layer}`);
+    const bar        = document.getElementById(`scard-bar-${sys.layer}`);
+    if (!card) return;
+
+    const phaseLayerData = faseData?.layers_ativos?.[sys.layer];
+    const isActive = activeLayers.has(sys.layer);
+
+    if (isActive) {
+      card.classList.add('active');
+      card.style.borderColor = (LAYERS[sys.layer]?.cor || 'var(--accent)') + '66';
+    } else {
+      card.classList.remove('active');
+      card.style.borderColor = 'var(--border)';
+    }
+
+    if (phaseLayerData && isActive) {
+      const maxSev = Math.max(...phaseLayerData);
+      const pct    = (maxSev / 5) * 100;
+      bar.style.width = pct + '%';
+      const statKey = getStatusForSev(maxSev);
+      statusBadge.textContent = statKey;
+      statusBadge.className   = `status-badge status-${statKey}`;
+    } else {
+      bar.style.width = '0%';
+      statusBadge.textContent = 'OFFLINE';
+      statusBadge.className   = 'status-badge status-NORMAL';
+    }
+  });
+}
+
+function getStatusForSev(sev) {
+  if (sev <= 1) return 'NORMAL';
+  if (sev === 2) return 'ATENÇÃO';
+  if (sev === 3) return 'ALERTA';
+  if (sev === 4) return 'CRÍTICO';
+  return 'COLAPSO';
+}
+
+// ── PHASE DOTS ───────────────────────────────────────────────
+function buildPhaseDots() {
+  const container = document.getElementById('phaseDots');
+  container.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    if (i > 1) {
+      const line = document.createElement('div');
+      line.className = 'phase-line';
+      line.id = `pline-${i}`;
+      container.appendChild(line);
+    }
+    const dot = document.createElement('div');
+    dot.className = 'phase-dot future';
+    dot.id = `pdot-${i}`;
+    container.appendChild(dot);
+  }
+}
+
+function refreshPhaseDots() {
+  for (let i = 1; i <= 5; i++) {
+    const dot = document.getElementById(`pdot-${i}`);
+    const line = document.getElementById(`pline-${i}`);
+    if (dot) {
+      if (i < currentPhase) dot.className = 'phase-dot past';
+      else if (i === currentPhase) dot.className = 'phase-dot curr';
+      else dot.className = 'phase-dot future';
+    }
+    if (line) {
+      line.classList.toggle('lit', i <= currentPhase);
+    }
+  }
+
+  const faseData = crisis.fases[currentPhase - 1];
+  document.getElementById('phaseTitle').textContent = faseData?.titulo || `Fase ${currentPhase}`;
+  document.getElementById('phaseDesc').textContent  = faseData?.descricao_fase || '';
+  document.getElementById('hdrPhase').textContent   = `FASE ${currentPhase}/5`;
+}
+
+// ── MAP ───────────────────────────────────────────────────────
+function initMap() {
+  map = new maplibregl.Map({
+    container: 'map',
+    style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    center: crisis.centro_mapa,
+    zoom: crisis.zoom_inicial,
+    minZoom: 8,
+    maxZoom: 17,
+    maxBounds: [[-47.2, -24.1], [-45.8, -23.0]],
+    attributionControl: false
+  });
+
+  map.on('load', () => {
+    buildMarkers();
+  });
+}
+
+function buildMarkers() {
+  // Limpar
+  Object.values(markerObjects).forEach(m => m.remove());
+  markerObjects = {};
+
+  crisis.ancoras.forEach(ancora => {
+    const cfg    = LAYERS[ancora.layer] || { cor: '#00ffcc' };
+    const el     = document.createElement('div');
+    const size   = 10 + (ancora.severidade_inicial || 1) * 2;
+    el.className = 'anchor-marker';
+    el.style.cssText = `
+      width: ${size}px; height: ${size}px;
+      background: ${cfg.cor};
+      box-shadow: 0 0 ${size}px ${cfg.cor}88;
+      opacity: 0.08;
+    `;
+
+    // Pulso
+    let pulseInterval = null;
+    let glowOn = false;
+
+    function startPulse(sev) {
+      if (pulseInterval) clearInterval(pulseInterval);
+      const period = sev <= 2 ? 2200 : sev === 3 ? 1400 : 700;
+      const gMin   = `0 0 ${size}px ${cfg.cor}44`;
+      const gMax   = `0 0 ${size * 2.5}px ${cfg.cor}, 0 0 ${size * 4}px ${cfg.cor}66`;
+      pulseInterval = setInterval(() => {
+        glowOn = !glowOn;
+        el.style.boxShadow = glowOn ? gMax : gMin;
+        el.style.transform  = glowOn ? 'scale(1.15)' : 'scale(1)';
+      }, period / 2);
+    }
+
+    function stopPulse() {
+      if (pulseInterval) { clearInterval(pulseInterval); pulseInterval = null; }
+      el.style.boxShadow = `0 0 ${size}px ${cfg.cor}88`;
+      el.style.transform  = 'scale(1)';
+    }
+
+    el._startPulse = startPulse;
+    el._stopPulse  = stopPulse;
+    el._pulseInt   = null;
+
+    // Popup ao clicar
+    el.addEventListener('click', () => showAnchorPopup(ancora));
+
+    const marker = new maplibregl.Marker({ element: el })
+      .setLngLat(ancora.coords)
+      .addTo(map);
+
+    markerObjects[ancora.id] = { marker, el, ancora, startPulse, stopPulse };
+  });
+}
+
+function refreshMarkers() {
+  const faseData = crisis.fases[currentPhase - 1];
+  crisis.ancoras.forEach(ancora => {
+    const obj = markerObjects[ancora.id];
+    if (!obj) return;
+    const { el, startPulse, stopPulse } = obj;
+
+    const isLayerActive = activeLayers.has(ancora.layer);
+    const phaseLayerData = faseData?.layers_ativos?.[ancora.layer];
+
+    if (isLayerActive && phaseLayerData) {
+      const anchIdx  = crisis.ancoras.filter(a => a.layer === ancora.layer).findIndex(a => a.id === ancora.id);
+      const sev      = phaseLayerData[Math.min(anchIdx, phaseLayerData.length - 1)] || 1;
+      const newSize  = 10 + sev * 2;
+      el.style.width   = newSize + 'px';
+      el.style.height  = newSize + 'px';
+      el.style.opacity = '1';
+      startPulse(sev);
+    } else {
+      el.style.opacity = '0.08';
+      stopPulse();
+    }
+  });
+}
+
+function showAnchorPopup(ancora) {
+  const cfg = LAYERS[ancora.layer] || { cor: '#00ffcc', icone: '●' };
+  const faseInfo = ancora.dados_por_fase?.[currentPhase] || { valor: '—', delta: '—', status: 'NORMAL' };
+  const statusColor = STATUS_COLORS[faseInfo.status] || '#c8e8f0';
+
+  const html = `
+    <div class="popup-header">${cfg.icone} ${(cfg.nome || ancora.layer).toUpperCase()}</div>
+    <div class="popup-location">${ancora.label}</div>
+    <div class="popup-description">${ancora.descricao}</div>
+    <div class="popup-value">${faseInfo.valor}</div>
+    <div class="popup-delta">▲ ${faseInfo.delta}</div>
+    <div class="popup-status" style="color:${statusColor}">● ${faseInfo.status}</div>
+  `;
+
+  // Fechar popup anterior desta âncora
+  if (popups[ancora.id]) { popups[ancora.id].remove(); delete popups[ancora.id]; }
+
+  const popup = new maplibregl.Popup({ closeButton: true, maxWidth: '260px' })
+    .setLngLat(ancora.coords)
+    .setHTML(html)
+    .addTo(map);
+
+  popups[ancora.id] = popup;
+}
+
+// ── CONNECTION LINES ─────────────────────────────────────────
+function refreshConnectionLines() {
+  // Remover linhas existentes
+  Object.keys(connectionLines).forEach(id => {
+    if (map.getLayer(id))  map.removeLayer(id);
+    if (map.getSource(id)) map.removeSource(id);
+  });
+  connectionLines = {};
+
+  if (!map.isStyleLoaded()) return;
+
+  crisis.conexoes_causa_efeito.forEach((conn, i) => {
+    const src  = crisis.ancoras.find(a => a.id === conn.de);
+    const dst  = crisis.ancoras.find(a => a.id === conn.para);
+    if (!src || !dst) return;
+
+    const srcActive = activeLayers.has(src.layer);
+    const dstActive = activeLayers.has(dst.layer);
+    if (!srcActive || !dstActive) return;
+
+    const lineId = `conn-${i}`;
+    const cfg    = LAYERS[src.layer] || { cor: '#00ffcc' };
+
+    map.addSource(lineId, {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: [src.coords, dst.coords] }
+      }
+    });
+
+    map.addLayer({
+      id: lineId,
+      type: 'line',
+      source: lineId,
+      paint: {
+        'line-color': cfg.cor,
+        'line-width': 1.5,
+        'line-opacity': 0.4,
+        'line-dasharray': [2, 3]
+      }
+    });
+
+    connectionLines[lineId] = true;
+  });
+}
+
+// ── ANCHORS TABLE ─────────────────────────────────────────────
+function refreshAnchorsTable() {
+  const tbody    = document.getElementById('anchorsBody');
+  const faseData = crisis.fases[currentPhase - 1];
+  tbody.innerHTML = '';
+
+  crisis.ancoras.forEach(ancora => {
+    const cfg      = LAYERS[ancora.layer] || { cor: '#00ffcc' };
+    const isActive = activeLayers.has(ancora.layer);
+    const faseInfo = ancora.dados_por_fase?.[currentPhase] || { valor: '—', status: 'NORMAL' };
+
+    const tr = document.createElement('tr');
+    tr.className = isActive ? 'layer-active-row' : 'layer-inactive-row';
+    tr.innerHTML = `
+      <td title="${ancora.label}">${ancora.label.split('—').pop().trim().substring(0, 16)}</td>
+      <td><span style="color:${cfg.cor};font-size:0.7rem">●</span></td>
+      <td style="color:var(--text);font-size:0.52rem">${isActive ? faseInfo.valor : '—'}</td>
+      <td><span class="status-badge status-${faseInfo.status}">${isActive ? faseInfo.status : '—'}</span></td>
+    `;
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('click', () => {
+      if (!isActive) toggleLayer(ancora.layer);
+      else map.flyTo({ center: ancora.coords, zoom: 14, duration: 800 });
+      showAnchorPopup(ancora);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+// ── KPIs ───────────────────────────────────────────────────────
+function updateKPIs() {
+  const faseData = crisis.fases[currentPhase - 1];
+
+  // Cobertura
+  const cobertura = activeLayers.size > 0
+    ? Math.round((activeLayers.size / crisis.layers_afetados.length) * 100)
+    : 0;
+
+  // Severidade
+  let sevMedia = 0;
+  if (activeLayers.size > 0) {
+    const sevVals = [...activeLayers].map(l => {
+      const pd = faseData?.layers_ativos?.[l];
+      return pd ? Math.max(...pd) : 0;
+    });
+    sevMedia = sevVals.reduce((a, b) => a + b, 0) / sevVals.length;
+  }
+  const severidade = Math.round((sevMedia / 5) * 100);
+
+  // Fase
+  const faseVal = ((currentPhase - 1) / 4) * 100;
+
+  // Sinais (barra até 60 max)
+  const sinaisVal = Math.min(totalSignals, 60);
+  const sinaisPct = (sinaisVal / 60) * 100;
+
+  animateGauge('gCobertura', 'vCobertura', cobertura, '%');
+  animateGauge('gSeveridade','vSeveridade', severidade, '');
+  animateGauge('gFase',      'vFase',       faseVal,    '', currentPhase.toString());
+  animateGauge('gSinais',    'vSinais',     sinaisPct,  '', totalSignals.toString());
+
+  // Cor do gauge cobertura
+  const covEl = document.getElementById('gCobertura');
+  if (cobertura < 50) covEl.setAttribute('stroke', '#00ffcc');
+  else if (cobertura < 80) covEl.setAttribute('stroke', '#ffcc00');
+  else covEl.setAttribute('stroke', '#ff3b3b');
+
+  // Cor severidade
+  const sevEl = document.getElementById('gSeveridade');
+  if (severidade < 40) sevEl.setAttribute('stroke', '#00ffcc');
+  else if (severidade < 70) sevEl.setAttribute('stroke', '#ffcc00');
+  else sevEl.setAttribute('stroke', '#ff3b3b');
+}
+
+function animateGauge(circleId, valueId, targetPct, suffix, displayVal) {
+  const circle  = document.getElementById(circleId);
+  const valEl   = document.getElementById(valueId);
+  const circ    = 175.93;
+  const offset  = circ - (targetPct / 100) * circ;
+
+  circle.style.strokeDashoffset = offset;
+
+  // Animate value display
+  const startVal = parseInt(valEl.textContent) || 0;
+  const endVal   = displayVal !== undefined ? parseInt(displayVal) : Math.round(targetPct);
+  if (isNaN(endVal)) { valEl.textContent = (displayVal || Math.round(targetPct)) + suffix; return; }
+
+  const steps    = 20;
+  const stepTime = 400 / steps;
+  let   step     = 0;
+  const iv       = setInterval(() => {
+    step++;
+    const cur = Math.round(startVal + (endVal - startVal) * (step / steps));
+    valEl.textContent = cur + suffix;
+    if (step >= steps) clearInterval(iv);
+  }, stepTime);
+}
+
+// ── CHART ─────────────────────────────────────────────────────
+function initChart() {
+  const ctx = document.getElementById('severityChart').getContext('2d');
+  const phases = [1, 2, 3, 4, 5];
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: phases.map(p => `F${p}`),
+      datasets: []
+    },
+    options: {
+      responsive: false,
+      maintainAspectRatio: false,
+      animation: { duration: 600 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#060f1e',
+          borderColor: '#0d2535',
+          borderWidth: 1,
+          titleColor: '#00ffcc',
+          bodyColor: '#c8e8f0',
+          titleFont: { family: 'Share Tech Mono' },
+          bodyFont:  { family: 'Share Tech Mono', size: 10 }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(13,37,53,0.8)' },
+          ticks: { color: '#3a6070', font: { family: 'Share Tech Mono', size: 9 } }
+        },
+        y: {
+          min: 0, max: 5,
+          grid: { color: 'rgba(13,37,53,0.8)' },
+          ticks: { color: '#3a6070', font: { family: 'Share Tech Mono', size: 9 }, stepSize: 1 }
+        }
+      }
+    }
+  });
+}
+
+function updateChart() {
+  if (!chart) return;
+
+  const datasets = [];
+  activeLayers.forEach(key => {
+    const cfg = LAYERS[key] || { cor: '#00ffcc', nome: key };
+    const vals = crisis.fases.map(fase => {
+      const pd = fase.layers_ativos?.[key];
+      return pd ? Math.max(...pd) : 0;
+    });
+    datasets.push({
+      label: cfg.nome,
+      data: vals,
+      borderColor: cfg.cor,
+      backgroundColor: cfg.cor + '22',
+      borderWidth: 1.5,
+      pointRadius: 3,
+      pointBackgroundColor: cfg.cor,
+      fill: false,
+      tension: 0.3
+    });
+  });
+
+  chart.data.datasets = datasets;
+  chart.update();
+}
+
+// ── TERMINAL ──────────────────────────────────────────────────
+function classifyLog(line) {
+  if (line.startsWith('[COLAPSO]'))    return 'colapso';
+  if (line.startsWith('[EMERGENCIA]')) return 'emergencia';
+  if (line.startsWith('[ALERTA'))     return 'alerta';
+  if (line.startsWith('[INCENDIO]'))  return 'incendio';
+  if (line.startsWith('[SATELITE]'))  return 'satelite';
+  if (line.startsWith('[SENSOR'))     return 'sensor';
+  if (line.startsWith('[SISTEMA]'))   return 'sistema';
+  return 'sensor';
+}
+
+function addTerminalLine(text, type) {
+  const body = document.getElementById('terminal-body');
+
+  // Remover cursor anterior
+  const oldCursor = body.querySelector('.term-cursor-line');
+  if (oldCursor) oldCursor.remove();
+
+  const now  = new Date();
+  const ts   = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+  const line = document.createElement('div');
+  line.className = 'terminal-line';
+  line.innerHTML = `<span class="term-ts">[${ts}]</span><span class="term-text term-${type}">${escapeHtml(text)}</span>`;
+  body.appendChild(line);
+
+  // Cursor
+  const cursorLine = document.createElement('div');
+  cursorLine.className = 'terminal-line term-cursor-line';
+  cursorLine.innerHTML = '<span class="term-cursor">█</span>';
+  body.appendChild(cursorLine);
+
+  body.scrollTop = body.scrollHeight;
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// ── PHASE ENGINE ─────────────────────────────────────────────
+const PHASE_DURATION_MS      = 2 * 60 * 1000;
+const SPONTANEOUS_INTERVAL_MS = 55 * 1000;
+
+function startPhase(n) {
+  currentPhase = n;
+  timerSeconds = 120;
+
+  // Stop previous timer
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  if (spontaneousTimer) { clearTimeout(spontaneousTimer); spontaneousTimer = null; }
+
+  const faseData = crisis.fases[n - 1];
+
+  // Log das linhas da fase com delay
+  faseData.log_tecnico?.forEach((line, i) => {
+    setTimeout(() => addTerminalLine(line, classifyLog(line)), i * 400 + 200);
+  });
+
+  refreshPhaseDots();
+  refreshLayerUI();
+  refreshSystemCards();
+  refreshMarkers();
+  refreshAnchorsTable();
+  refreshConnectionLines();
+  updateKPIs();
+  updateChart();
+
+  // Fetch relatos
+  fetchRelatos(false);
+
+  // Timer
+  if (faseData.duracao_min !== null) {
+    startCountdown();
+  } else {
+    document.getElementById('hdrTimer').textContent = '∞';
+    document.getElementById('hdrTimer').style.color = 'var(--critical)';
+    scheduleSpontaneous();
+  }
+}
+
+function startCountdown() {
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    updateTimerDisplay();
+    if (timerSeconds <= 0) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      advancePhase();
+    }
+  }, 1000);
+  scheduleSpontaneous();
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(timerSeconds / 60).toString();
+  const s = (timerSeconds % 60).toString().padStart(2, '0');
+  const el = document.getElementById('hdrTimer');
+  el.textContent = `${m}:${s}`;
+
+  if (timerSeconds <= 30) {
+    el.style.color = 'var(--danger)';
+  } else if (timerSeconds <= 60) {
+    el.style.color = 'var(--warn)';
+  } else {
+    el.style.color = 'var(--warn)';
+  }
+}
+
+function advancePhase() {
+  if (currentPhase < 5) {
+    addTerminalLine(`[SISTEMA] Avançando para Fase ${currentPhase + 1}...`, 'sistema');
+    setTimeout(() => startPhase(currentPhase + 1), 600);
+  } else {
+    addTerminalLine('[SISTEMA] Fase máxima atingida. Situação crítica em curso.', 'alerta');
+    scheduleSpontaneous();
+  }
+}
+
+function scheduleSpontaneous() {
+  if (spontaneousTimer) { clearTimeout(spontaneousTimer); }
+  spontaneousTimer = setTimeout(() => {
+    spontaneousFlash();
+    fetchRelatos(true);
+    scheduleSpontaneous();
+  }, SPONTANEOUS_INTERVAL_MS + Math.random() * 15000);
+}
+
+function spontaneousFlash() {
+  if (!crisis.ancoras.length) return;
+  const ancora = crisis.ancoras[Math.floor(Math.random() * crisis.ancoras.length)];
+  const obj    = markerObjects[ancora.id];
+  if (!obj) return;
+
+  const { el } = obj;
+  const cfg    = LAYERS[ancora.layer] || { cor: '#00ffcc' };
+  let   flashes = 0;
+
+  const flashIv = setInterval(() => {
+    flashes++;
+    el.style.opacity   = flashes % 2 === 0 ? '0.08' : '1';
+    el.style.boxShadow = flashes % 2 === 0 ? '' : `0 0 30px ${cfg.cor}, 0 0 60px ${cfg.cor}88`;
+    if (flashes >= 12) {
+      clearInterval(flashIv);
+      const isActive = activeLayers.has(ancora.layer);
+      el.style.opacity = isActive ? '1' : '0.08';
+    }
+  }, 120);
+
+  addTerminalLine(`[SENSOR_AUTO] ${ancora.id} :: sinal_espontaneo :: layer=${ancora.layer} :: status=MONIT`, 'sensor');
+}
+
+// ── RELATOS ───────────────────────────────────────────────────
+async function fetchRelatos(isSpontaneous, specificLayer) {
+  try {
+    const layerToSend = specificLayer || (activeLayers.size > 0
+      ? [...activeLayers][Math.floor(Math.random() * activeLayers.size)]
+      : null);
+
+    const body = {
+      crisis: {
+        nome: crisis.nome,
+        regiao: crisis.regiao,
+        ancora_principal: crisis.ancora_principal,
+        fases: crisis.fases
+      },
+      fase: currentPhase,
+      layer: layerToSend
+    };
+
+    const res  = await fetch('/api/relatos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    if (data.relatos?.length) {
+      data.relatos.forEach((r, i) => {
+        setTimeout(() => addRelato(r), i * 800);
+      });
+    }
+  } catch (err) {
+    // API offline — adicionar relato placeholder
+    addRelato({
+      fonte: 'Sistema',
+      tipo: 'controle',
+      texto: `Módulo de relatos offline. Monitoramento continuando — fase ${currentPhase} ativa.`,
+      layer: activeLayers.size > 0 ? [...activeLayers][0] : 'agua'
+    });
+  }
+}
+
+function addRelato(r) {
+  totalSignals++;
+  document.getElementById('relatoCount').textContent = totalSignals;
+
+  const body = document.getElementById('relatos-body');
+  const cfg  = LAYERS[r.layer] || { cor: '#00ffcc' };
+  const card = document.createElement('div');
+  card.className = 'relato-card';
+  card.style.borderLeftColor = cfg.cor;
+
+  const now  = new Date();
+  const ts   = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+
+  card.innerHTML = `
+    <div class="relato-header">
+      <span class="relato-fonte-badge fonte-${r.tipo}">${r.tipo}</span>
+      <span class="relato-layer-dot" style="background:${cfg.cor}"></span>
+      <span class="relato-fonte-name">${escapeHtml(r.fonte || '—')}</span>
+      <span class="relato-ts">${ts} F${currentPhase}</span>
+    </div>
+    <div class="relato-text">${escapeHtml(r.texto || '')}</div>
+  `;
+
+  // Inserir no topo
+  if (body.firstChild) {
+    body.insertBefore(card, body.firstChild);
+  } else {
+    body.appendChild(card);
+  }
+
+  // Manter máximo 60
+  while (body.children.length > 60) {
+    body.removeChild(body.lastChild);
+  }
+
+  updateKPIs();
+}
+
+// ── ALL UI REFRESH ────────────────────────────────────────────
+function updateAllUI() {
+  refreshPhaseDots();
+  refreshLayerUI();
+  refreshSystemCards();
+  refreshAnchorsTable();
+  updateKPIs();
+}
+
+// ── BOOT ──────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

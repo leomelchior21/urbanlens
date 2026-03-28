@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URBAN LENS — Sistema de Monitoramento Urbano</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #040d1a;
+      --panel:    #060f1e;
+      --border:   #0d2535;
+      --accent:   #00ffcc;
+      --accent2:  #00bfff;
+      --accent3:  #0080ff;
+      --warn:     #ffcc00;
+      --text:     #c8e8f0;
+      --text-dim: #3a6070;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Share Tech Mono', monospace;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,255,204,0.015) 2px,
+        rgba(0,255,204,0.015) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.7) 100%);
+      pointer-events: none;
+      z-index: 9998;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      gap: 32px;
+      padding: 40px;
+    }
+
+    .logo-section {
+      text-align: center;
+      animation: fadeIn 0.8s ease forwards;
+    }
+
+    .logo-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      filter: drop-shadow(0 0 20px var(--accent));
+    }
+
+    .logo-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 3.2rem;
+      font-weight: 900;
+      letter-spacing: 0.3em;
+      color: var(--accent);
+      text-shadow: 0 0 20px var(--accent), 0 0 40px rgba(0,255,204,0.4);
+      margin-bottom: 8px;
+    }
+
+    .logo-sub {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+    }
+
+    .loading-section {
+      width: 100%;
+      max-width: 480px;
+      animation: fadeIn 0.8s 0.3s ease both;
+    }
+
+    .loading-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 24px;
+      min-height: 140px;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      opacity: 0;
+      transform: translateX(-8px);
+      transition: opacity 0.3s, transform 0.3s, color 0.3s;
+    }
+
+    .step.active {
+      opacity: 1;
+      transform: translateX(0);
+      color: var(--text);
+    }
+
+    .step.done {
+      opacity: 0.6;
+      transform: translateX(0);
+      color: var(--accent);
+    }
+
+    .step-icon {
+      width: 16px;
+      text-align: center;
+      font-size: 0.65rem;
+    }
+
+    .step.done .step-icon::before { content: '✓'; color: var(--accent); }
+    .step.active .step-icon::before { content: '▶'; color: var(--warn); animation: blink 0.7s infinite; }
+    .step.pending .step-icon::before { content: '○'; color: var(--text-dim); }
+
+    .progress-bar-wrap {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      height: 6px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(0,255,204,0.1);
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent3), var(--accent));
+      box-shadow: 0 0 12px var(--accent);
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-size: 0.62rem;
+      color: var(--text-dim);
+    }
+
+    .crisis-reveal {
+      text-align: center;
+      opacity: 0;
+      animation: fadeIn 0.6s 0.2s ease both;
+    }
+
+    .crisis-reveal-label {
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      letter-spacing: 0.2em;
+      margin-bottom: 8px;
+    }
+
+    .crisis-reveal-name {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--warn);
+      text-shadow: 0 0 15px var(--warn);
+    }
+
+    .session-id {
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      margin-top: 6px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo-section">
+      <div class="logo-icon">🏙️</div>
+      <div class="logo-title">URBAN LENS</div>
+      <div class="logo-sub">Sistema de Monitoramento Urbano — RMSP</div>
+    </div>
+
+    <div class="loading-section">
+      <div class="loading-steps" id="steps"></div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div class="progress-label">
+        <span>INICIALIZANDO</span>
+        <span id="progressPct">0%</span>
+      </div>
+    </div>
+
+    <div class="crisis-reveal" id="crisisReveal" style="display:none">
+      <div class="crisis-reveal-label">CRISE DETECTADA — CARREGANDO DADOS</div>
+      <div class="crisis-reveal-name" id="crisisName">—</div>
+      <div class="session-id" id="sessionId"></div>
+    </div>
+  </div>
+
+  <script>
+    const STEPS = [
+      "Estabelecendo conexão com servidores RMSP...",
+      "Carregando base cartográfica da região metropolitana...",
+      "Sincronizando sensores urbanos em tempo real...",
+      "Autenticando operador — sessão segura ativada...",
+      "Sorteando cenário de crise urbana...",
+      "Preparando interface de monitoramento..."
+    ];
+
+    const stepsEl = document.getElementById('steps');
+    const progressBar = document.getElementById('progressBar');
+    const progressPct = document.getElementById('progressPct');
+    const crisisReveal = document.getElementById('crisisReveal');
+    const crisisNameEl = document.getElementById('crisisName');
+    const sessionIdEl = document.getElementById('sessionId');
+
+    STEPS.forEach((text, i) => {
+      const div = document.createElement('div');
+      div.className = 'step pending';
+      div.id = 'step-' + i;
+      div.innerHTML = `<span class="step-icon"></span><span>${text}</span>`;
+      stepsEl.appendChild(div);
+    });
+
+    function genSession() {
+      return Array.from({length: 6}, () => '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.floor(Math.random() * 34)]).join('');
+    }
+
+    function setProgress(pct) {
+      progressBar.style.width = pct + '%';
+      progressPct.textContent = pct + '%';
+    }
+
+    async function runStep(i) {
+      const el = document.getElementById('step-' + i);
+      el.className = 'step active';
+      await delay(600 + Math.random() * 500);
+      el.className = 'step done';
+      setProgress(Math.round(((i + 1) / STEPS.length) * 85));
+    }
+
+    function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    async function boot() {
+      await delay(400);
+      for (let i = 0; i < STEPS.length; i++) {
+        await runStep(i);
+        await delay(80);
+      }
+
+      // Sortear crise 1-10
+      const crisisId = Math.floor(Math.random() * 10) + 1;
+      const session = genSession();
+
+      const crisisNames = [
+        "Colapso Hídrico no ABC",
+        "Onda de Calor na Zona Leste",
+        "Enchente no Rio Tietê",
+        "Blackout em Cascata — Centro",
+        "Colapso de Resíduos — Guarulhos",
+        "Deslizamento em Parelheiros",
+        "Crise de Qualidade do Ar — RMSP",
+        "Colapso de Mobilidade — Eixo Paulista",
+        "Desabastecimento — Cantareira",
+        "Emergência de Saúde — Heliópolis"
+      ];
+
+      setProgress(95);
+
+      crisisReveal.style.display = 'block';
+      crisisReveal.style.animation = 'none';
+      crisisReveal.offsetHeight;
+      crisisReveal.style.animation = '';
+      crisisNameEl.textContent = crisisNames[crisisId - 1];
+      sessionIdEl.textContent = `ID DE SESSÃO: ${session}`;
+
+      await delay(1200);
+      setProgress(100);
+      await delay(600);
+
+      window.location.href = `sim.html?crisis=${crisisId}&session=${session}`;
+    }
+
+    boot();
+  </script>
+</body>
+</html>
