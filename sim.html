@@ -682,6 +682,39 @@
       cursor: pointer;
       transition: opacity 0.4s;
     }
+
+    /* ── LAYER TINT OVERLAY ── */
+    #tint {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0;
+      transition: background .6s, opacity .6s;
+    }
+    #tint.active { opacity: 1; }
+
+    /* ── MAP OVERLAY LABEL ── */
+    #map-overlay-label {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(4,13,26,.92);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 4px 16px;
+      font-size: .58rem;
+      letter-spacing: .16em;
+      color: var(--text-dim);
+      pointer-events: none;
+      z-index: 10;
+      white-space: nowrap;
+      transition: color .4s, border-color .4s;
+    }
+    #map-overlay-label.active-layer {
+      text-shadow: 0 0 10px currentColor;
+    }
   </style>
 </head>
 <body>
@@ -798,6 +831,10 @@
 <main id="center">
   <div id="map"></div>
 
+  <!-- Layer tint + floating label -->
+  <div id="tint"></div>
+  <div id="map-overlay-label">SELECIONE UMA CAMADA PARA INVESTIGAR</div>
+
   <!-- Hex overlay -->
   <svg id="hex-overlay" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -850,16 +887,16 @@
 
 // ── LAYER CONFIG ──────────────────────────────────────────────
 const LAYERS = {
-  agua:        { nome: 'Água',        icone: '💧', cor: '#00bfff' },
-  temperatura: { nome: 'Temp.',       icone: '🌡️', cor: '#ff4500' },
-  lixo:        { nome: 'Resíduos',    icone: '🗑️', cor: '#8b4513' },
-  transito:    { nome: 'Trânsito',    icone: '🚗', cor: '#ff6347' },
-  energia:     { nome: 'Energia',     icone: '⚡', cor: '#ffd700' },
-  solo:        { nome: 'Solo',        icone: '🪨', cor: '#8b6914' },
-  saude:       { nome: 'Saúde',       icone: '🏥', cor: '#dc143c' },
-  ar:          { nome: 'Ar',          icone: '💨', cor: '#9400d3' },
-  vegetacao:   { nome: 'Vegetação',   icone: '🌿', cor: '#228b22' },
-  poluicao:    { nome: 'Poluição',    icone: '☁️', cor: '#696969' },
+  agua:        { nome: 'Água',        icone: '💧', cor: '#00bfff', tint: 'rgba(0,100,255,0.08)',   mapFilter: 'brightness(0.45) sepia(1) saturate(4) hue-rotate(180deg)' },
+  temperatura: { nome: 'Temp.',       icone: '🌡️', cor: '#ff4500', tint: 'rgba(255,80,0,0.07)',    mapFilter: 'brightness(0.45) sepia(1) saturate(3) hue-rotate(330deg)' },
+  lixo:        { nome: 'Resíduos',    icone: '🗑️', cor: '#8b4513', tint: 'rgba(100,80,0,0.07)',    mapFilter: 'brightness(0.40) sepia(1) saturate(2) hue-rotate(30deg)'  },
+  transito:    { nome: 'Trânsito',    icone: '🚗', cor: '#ff6347', tint: 'rgba(255,40,40,0.06)',   mapFilter: 'brightness(0.45) sepia(1) saturate(3) hue-rotate(300deg)' },
+  energia:     { nome: 'Energia',     icone: '⚡', cor: '#ffd700', tint: 'rgba(255,180,0,0.06)',   mapFilter: 'brightness(0.50) sepia(1) saturate(3) hue-rotate(10deg)'  },
+  solo:        { nome: 'Solo',        icone: '🪨', cor: '#8b6914', tint: 'rgba(140,80,0,0.07)',    mapFilter: 'brightness(0.40) sepia(1) saturate(2) hue-rotate(20deg)'  },
+  saude:       { nome: 'Saúde',       icone: '🏥', cor: '#dc143c', tint: 'rgba(200,0,80,0.06)',    mapFilter: 'brightness(0.45) sepia(1) saturate(3) hue-rotate(270deg)' },
+  ar:          { nome: 'Ar',          icone: '💨', cor: '#9400d3', tint: 'rgba(100,0,200,0.06)',   mapFilter: 'brightness(0.40) sepia(1) saturate(2) hue-rotate(220deg)' },
+  vegetacao:   { nome: 'Vegetação',   icone: '🌿', cor: '#228b22', tint: 'rgba(0,180,0,0.07)',     mapFilter: 'brightness(0.40) sepia(1) saturate(3) hue-rotate(90deg)'  },
+  poluicao:    { nome: 'Poluição',    icone: '☁️', cor: '#696969', tint: 'rgba(80,80,80,0.07)',    mapFilter: 'brightness(0.35) sepia(1) saturate(1) hue-rotate(200deg)' },
 };
 
 const STATUS_COLORS = {
@@ -956,6 +993,11 @@ function toggleLayer(key) {
   refreshConnectionLines();
   updateKPIs();
   updateChart();
+
+  // Tint: follow the most recently activated layer, clear when none active
+  const tintTarget = activeLayers.size > 0 ? [...activeLayers][activeLayers.size - 1] : null;
+  applyMapTint(tintTarget);
+  updateMapOverlayLabel();
 }
 
 function refreshLayerUI() {
@@ -1218,6 +1260,52 @@ function showAnchorPopup(ancora) {
     .addTo(map);
 
   popups[ancora.id] = popup;
+}
+
+// ── MAP TINT + OVERLAY LABEL ─────────────────────────────────
+function applyMapTint(layerId) {
+  const tintEl = document.getElementById('tint');
+  const canvas = document.querySelector('#map canvas');
+
+  if (!layerId) {
+    tintEl.classList.remove('active');
+    tintEl.style.background = '';
+    if (canvas) { canvas.style.transition = 'filter .6s'; canvas.style.filter = ''; }
+    return;
+  }
+
+  const m = LAYERS[layerId];
+  if (!m) return;
+  tintEl.style.background = m.tint || '';
+  tintEl.classList.add('active');
+  if (canvas) { canvas.style.transition = 'filter .6s'; canvas.style.filter = m.mapFilter || ''; }
+}
+
+function updateMapOverlayLabel() {
+  const el = document.getElementById('map-overlay-label');
+  if (!el) return;
+
+  if (activeLayers.size === 0) {
+    el.textContent = 'SELECIONE UMA CAMADA PARA INVESTIGAR';
+    el.className = '';
+    el.style.borderColor = '';
+    el.style.color = '';
+    return;
+  }
+
+  const layerArr = [...activeLayers];
+  const lastKey  = layerArr[layerArr.length - 1];
+  const m        = LAYERS[lastKey] || {};
+
+  if (activeLayers.size === 1) {
+    el.textContent = `${m.icone || '●'}  CAMADA: ${(m.nome || lastKey).toUpperCase()} — FASE ${currentPhase}`;
+  } else {
+    el.textContent = `${activeLayers.size} CAMADAS ATIVAS — FASE ${currentPhase}`;
+  }
+
+  el.className = 'active-layer';
+  el.style.color       = m.cor || 'var(--accent2)';
+  el.style.borderColor = m.cor || 'var(--accent2)';
 }
 
 // ── CONNECTION LINES ─────────────────────────────────────────
@@ -1503,6 +1591,7 @@ function startPhase(n) {
   refreshConnectionLines();
   updateKPIs();
   updateChart();
+  updateMapOverlayLabel();
 
   // Fetch relatos
   fetchRelatos(false);
@@ -1573,18 +1662,20 @@ function spontaneousFlash() {
 
   const { el } = obj;
   const cfg    = LAYERS[ancora.layer] || { cor: '#00ffcc' };
-  let   flashes = 0;
+  // Force visible for the flash regardless of active layer
+  el.style.opacity = '1';
+  let n = 0;
 
   const flashIv = setInterval(() => {
-    flashes++;
-    el.style.opacity   = flashes % 2 === 0 ? '0.08' : '1';
-    el.style.boxShadow = flashes % 2 === 0 ? '' : `0 0 30px ${cfg.cor}, 0 0 60px ${cfg.cor}88`;
-    if (flashes >= 12) {
+    el.style.boxShadow = n % 2 === 0
+      ? `0 0 28px ${cfg.cor}, 0 0 50px ${cfg.cor}55`
+      : `0 0 4px ${cfg.cor}`;
+    n++;
+    if (n > 7) {
       clearInterval(flashIv);
-      const isActive = activeLayers.has(ancora.layer);
-      el.style.opacity = isActive ? '1' : '0.08';
+      el.style.opacity = activeLayers.has(ancora.layer) ? '1' : '0.08';
     }
-  }, 120);
+  }, 180);
 
   addTerminalLine(`[SENSOR_AUTO] ${ancora.id} :: sinal_espontaneo :: layer=${ancora.layer} :: status=MONIT`, 'sensor');
 }
