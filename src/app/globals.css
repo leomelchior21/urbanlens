@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0f172a; /* custom dark slate */
+  --foreground: #f8fafc;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  overflow: hidden; /* App mode */
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Hide Scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Retro Tactical Scanlines Pattern */
+.bg-scanlines {
+  background-image: linear-gradient(
+    rgba(0, 0, 0, 0) 50%, 
+    rgba(255, 255, 255, 0.02) 50%
+  );
+  background-size: 100% 4px;
+}
