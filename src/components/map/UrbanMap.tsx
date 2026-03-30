@@ -125,7 +125,7 @@ export const UrbanMap = () => {
                     <div className={`absolute -bottom-2 -left-2 w-8 h-[1px] ${c.bg} origin-bottom-left -rotate-45 opacity-80`} />
 
                     {/* Data Box */}
-                    <div className={`ml-4 bg-[#050b14]/85 backdrop-blur-md bg-scanlines border border-slate-600/50 border-l-2 ${c.borderL} shadow-[0_0_30px_rgba(0,0,0,0.8)] p-3 ${c.shadow} translate-y-2 relative before:absolute before:inset-0 before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/10`}>
+                    <div className={`ml-4 bg-[#050b14]/90 backdrop-blur-md bg-scanlines border border-slate-600/50 border-l-2 ${c.borderL} shadow-[0_0_30px_rgba(0,0,0,0.8)] p-3 ${c.shadow} translate-y-2 relative before:absolute before:inset-0 before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/10`}>
                       <div className={`text-[10px] ${c.text} font-mono font-bold mb-1 tracking-[0.2em] uppercase flex items-center justify-between border-b border-slate-700/50 pb-1`}>
                         <span>[{hotspot.type === 'false_lead' ? 'UNVERIFIED' : hotspot.type === 'hint' ? 'ADVISORY' : hotspot.type} INTEL]</span>
                         <span className="text-slate-600 font-mono text-[8px] pl-4">{hotspot.lat.toFixed(4)}, {hotspot.lng.toFixed(4)}</span>

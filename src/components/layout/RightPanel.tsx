@@ -90,7 +90,7 @@ export const RightPanel = () => {
       
       {/* Expanding Panel */}
       <div 
-        className={`transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden mr-2 sm:mr-4 bg-[#050b14]/85 backdrop-blur-md bg-scanlines border-y border-l border-slate-600/50 shadow-[0_0_30px_rgba(0,0,0,0.8)] pointer-events-auto flex flex-col relative before:absolute before:inset-0 before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/10
+        className={`transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden mr-2 sm:mr-4 bg-[#050b14]/90 backdrop-blur-md bg-scanlines border-y border-l border-slate-600/50 shadow-[0_0_30px_rgba(0,0,0,0.8)] pointer-events-auto flex flex-col relative before:absolute before:inset-0 before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/10
           ${activePanel ? 'w-80 sm:w-80 opacity-100 border-r border-r-slate-800 translate-x-0' : 'w-0 opacity-0 translate-x-10 border-r-transparent'}
         `}
       >
@@ -226,7 +226,7 @@ export const RightPanel = () => {
       </div>
 
       {/* Static Dock */}
-      <div className="bg-[#050b14]/85 backdrop-blur-md bg-scanlines border border-slate-600/50 flex flex-col pointer-events-auto shadow-[0_0_30px_rgba(0,0,0,0.8)] h-fit relative before:absolute before:inset-0 before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/10">
+      <div className="bg-[#050b14]/90 backdrop-blur-md bg-scanlines border border-slate-600/50 flex flex-col pointer-events-auto shadow-[0_0_30px_rgba(0,0,0,0.8)] h-fit relative before:absolute before:inset-0 before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/10">
         {getDockButton('metrics', Activity, 'Analytics')}
         {getDockButton('feed', Radio, 'Intercepts')}
         {getDockButton('evidence', Paperclip, 'Evidence Board')}

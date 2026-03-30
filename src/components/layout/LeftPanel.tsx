@@ -32,7 +32,7 @@ export const LeftPanel = () => {
 
   return (
     <div className="absolute top-[88px] bottom-6 left-2 sm:left-6 w-14 sm:w-56 z-40 flex flex-col pointer-events-none">
-      <div className="bg-[#050b14]/85 backdrop-blur-md border border-slate-600/50 rounded-sm overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.8)] flex-1 flex flex-col p-2 sm:p-4 pointer-events-auto bg-scanlines relative before:absolute before:inset-0 before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/10">
+      <div className="bg-[#050b14]/90 backdrop-blur-md border border-slate-600/50 rounded-sm overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.8)] flex-1 flex flex-col p-2 sm:p-4 pointer-events-auto bg-scanlines relative before:absolute before:inset-0 before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/10">
         
         {/* Terminal Header */}
         <div className="mb-4 hidden sm:flex flex-col border-b border-slate-700/50 pb-3">
