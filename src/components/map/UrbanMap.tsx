@@ -84,7 +84,11 @@ export const UrbanMap = () => {
                         hotspot.system === 'Energy' ? 'bg-yellow-500/50' :
                           hotspot.system === 'Mobility' ? 'bg-orange-500/50' :
                             hotspot.system === 'Waste' ? 'bg-stone-400/50' :
-                              'bg-green-500/50'
+                              hotspot.system === 'Vegetation' ? 'bg-green-500/50' :
+                                hotspot.system === 'Soil' ? 'bg-amber-700/50' :
+                                  hotspot.system === 'Social' ? 'bg-pink-500/50' :
+                                    hotspot.system === 'Health' ? 'bg-rose-600/50' :
+                                      'bg-slate-500/50'
                   }`}
                 />
 
@@ -100,7 +104,11 @@ export const UrbanMap = () => {
                         hotspot.system === 'Energy' ? 'bg-yellow-500 shadow-[0_0_8px_#eab308]' :
                           hotspot.system === 'Mobility' ? 'bg-orange-500 shadow-[0_0_8px_#f97316]' :
                             hotspot.system === 'Waste' ? 'bg-stone-300 shadow-[0_0_8px_#a8a29e]' :
-                              'bg-green-400 shadow-[0_0_8px_#22c55e]'
+                              hotspot.system === 'Vegetation' ? 'bg-green-400 shadow-[0_0_8px_#22c55e]' :
+                                hotspot.system === 'Soil' ? 'bg-amber-700 shadow-[0_0_8px_#b45309]' :
+                                  hotspot.system === 'Social' ? 'bg-pink-500 shadow-[0_0_8px_#ec4899]' :
+                                    hotspot.system === 'Health' ? 'bg-rose-600 shadow-[0_0_8px_#e11d48]' :
+                                      'bg-slate-400 shadow-[0_0_8px_#94a3b8]'
                   } ${selectedHotspot?.id === hotspot.id ? 'scale-[2.5] ring-2 ring-white/80 ring-offset-2 ring-offset-[#050b14]' : 'scale-100 hover:scale-[3]'}
                 `} />
               </div>
@@ -115,9 +123,12 @@ export const UrbanMap = () => {
                   Mobility: { bg: 'bg-orange-500', border: 'border-orange-500/50', borderL: 'border-l-orange-500', text: 'text-orange-500', shadow: 'shadow-[0_0_20px_rgba(249,115,22,0.3)]' },
 
                   Waste: { bg: 'bg-stone-400', border: 'border-stone-500/50', borderL: 'border-l-stone-400', text: 'text-stone-400', shadow: 'shadow-[0_0_20px_rgba(168,162,158,0.3)]' },
-                  Vegetation: { bg: 'bg-green-400', border: 'border-green-500/50', borderL: 'border-l-green-400', text: 'text-green-400', shadow: 'shadow-[0_0_20px_rgba(74,222,128,0.3)]' }
+                  Vegetation: { bg: 'bg-green-400', border: 'border-green-500/50', borderL: 'border-l-green-400', text: 'text-green-400', shadow: 'shadow-[0_0_20px_rgba(74,222,128,0.3)]' },
+                  Soil: { bg: 'bg-amber-700', border: 'border-amber-700/50', borderL: 'border-l-amber-700', text: 'text-amber-500', shadow: 'shadow-[0_0_20px_rgba(180,83,9,0.3)]' },
+                  Social: { bg: 'bg-pink-500', border: 'border-pink-500/50', borderL: 'border-l-pink-500', text: 'text-pink-500', shadow: 'shadow-[0_0_20px_rgba(236,72,153,0.3)]' },
+                  Health: { bg: 'bg-rose-600', border: 'border-rose-600/50', borderL: 'border-l-rose-600', text: 'text-rose-500', shadow: 'shadow-[0_0_20px_rgba(225,29,72,0.3)]' }
                 };
-                const c = sysColors[hotspot.system] || sysColors.Water;
+                const c = sysColors[hotspot.system as keyof typeof sysColors] || sysColors.Water;
                 return (
                   <div className="absolute bottom-3 left-3 w-64 pointer-events-none">
 

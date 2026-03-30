@@ -1,4 +1,5 @@
 import { ScenarioContext, SystemType, Hotspot } from "@/store/useCrisisStore";
+import { waterCollapseContext } from "./scenarios/WaterCollapse";
 
 export interface ScenarioData extends Partial<ScenarioContext> {
   anchors: { lat: number, lng: number }[];
@@ -177,6 +178,18 @@ export function generateChartData() {
 }
 
 export function generateInstantBaseScenario(): ScenarioContext {
+  // Try to use our explicitly authored scenarios first
+  const authoredScenarios = [waterCollapseContext];
+  const selectedAuthored = authoredScenarios[Math.floor(Math.random() * authoredScenarios.length)];
+  
+  if (selectedAuthored) {
+    return {
+      ...selectedAuthored,
+      id: `SCENARIO-${Date.now()}`
+    };
+  }
+
+  // Fallback to legacy random generator if needed
   const base = MOCK_SCENARIOS[Math.floor(Math.random() * MOCK_SCENARIOS.length)];
   return {
     id: `SCENARIO-${Date.now()}`,
@@ -192,6 +205,11 @@ export function generateInstantBaseScenario(): ScenarioContext {
 }
 
 export function generateMockHotspots(baseScenario: ScenarioContext): Hotspot[] {
+  // If the scenario already has explicitly authored hotspots, return them directly
+  if (baseScenario.hotspots && baseScenario.hotspots.length > 0) {
+    return baseScenario.hotspots;
+  }
+
   const hotspots: Hotspot[] = [];
   const systems: SystemType[] = ['Temperature', 'Air', 'Water', 'Energy', 'Mobility', 'Waste', 'Vegetation'];
   

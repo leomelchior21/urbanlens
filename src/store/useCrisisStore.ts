@@ -1,16 +1,28 @@
 import { create } from 'zustand';
 
-export type SystemType = 'Temperature' | 'Air' | 'Water' | 'Energy' | 'Mobility' | 'Waste' | 'Vegetation';
+export type SystemType = 'Temperature' | 'Air' | 'Water' | 'Energy' | 'Mobility' | 'Waste' | 'Vegetation' | 'Soil' | 'Social' | 'Health';
+
+export type InvestigativeRole = 'root_clue' | 'secondary_clue' | 'symptom' | 'distractor' | 'false_lead';
 
 export interface Hotspot {
   id: string;
   lat: number;
   lng: number;
-  type: 'news' | 'social' | 'complaint' | 'alert' | 'note' | 'hint' | 'false_lead';
+  type: 'news' | 'social' | 'complaint' | 'alert' | 'note' | 'hint' | 'internal_email' | 'false_lead';
+  investigativeRole?: InvestigativeRole;
   title: string;
   description: string;
   system: SystemType;
   stageAppeared: number;
+}
+
+export interface ChartConfig {
+  id: string;
+  title: string;
+  type: 'line' | 'area' | 'bar' | 'stacked_bar' | 'grouped_bar' | 'radar' | 'heatmap';
+  measureDescription: string;
+  hiddenRole: string;
+  data: Record<string, unknown>[];
 }
 
 export interface ScenarioContext {
@@ -22,7 +34,8 @@ export interface ScenarioContext {
   dossier: string; // Fake email from the mayor's advisor
   stageTexts: Record<number, string>;
   hotspots: Hotspot[];
-  chartData: Record<string, unknown>[]; // Used for RightPanel charts
+  chartData: Record<string, unknown>[]; // Used for RightPanel generic charts (legacy)
+  chartConfigs?: ChartConfig[]; // Used for explicit, meaningful charts (new)
 }
 
 interface CrisisState {
