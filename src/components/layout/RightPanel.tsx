@@ -363,7 +363,7 @@ export const RightPanel = () => {
                  <div className="text-slate-500 mb-4 border-b border-slate-800 pb-2 font-mono text-[9px] uppercase tracking-widest space-y-1">
                     <p>TO: <span className="text-slate-300">INVESTIGATION UNIT</span></p>
                     <p>FROM: <span className="text-slate-300">MAYOR&apos;S OFFICE (SECURE)</span></p>
-                    <p>SUBJECT: <span className="text-yellow-500">{scenarioContext.code} {scenarioContext.title}</span></p>
+                    <p>SUBJECT: <span className="text-yellow-500">{scenarioContext.code} MUNICIPAL INCIDENT DOSSIER</span></p>
                  </div>
                  <p className="whitespace-pre-line text-[11px] font-mono text-yellow-500/90 leading-relaxed uppercase">
                    &quot;{scenarioContext.dossier}&quot;
