@@ -38,18 +38,6 @@ function getChartSeriesKeys(chart: ChartConfig) {
   return Array.from(seriesKeys);
 }
 
-function getNoiseBadge(hotspot: Hotspot) {
-  if (hotspot.type === 'false_lead' || hotspot.investigativeRole === 'false_lead') {
-    return 'FALSE LEAD';
-  }
-
-  if (hotspot.investigativeRole === 'distractor') {
-    return 'NOISE';
-  }
-
-  return null;
-}
-
 export const RightPanel = () => {
   const { scenarioContext, activeSystem, stage, pinnedEvidence, unpinEvidence, selectedHotspot, setSelectedHotspot } = useCrisisStore();
   const [activePanel, setActivePanel] = useState<PanelType>('dossier'); // Mission Dossier open by default
@@ -323,19 +311,8 @@ export const RightPanel = () => {
                         {getIconForType(h.type)}
                       </div>
                       <div className="flex-1">
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <div className={`font-mono font-bold tracking-widest text-[10px] uppercase ${selectedHotspot?.id === h.id ? 'text-emerald-400' : 'text-slate-200'}`}>
-                            {h.title}
-                          </div>
-                          {getNoiseBadge(h) && (
-                            <span className={`shrink-0 border px-1.5 py-0.5 text-[8px] font-mono tracking-widest uppercase ${
-                              getNoiseBadge(h) === 'FALSE LEAD'
-                                ? 'border-pink-500/40 text-pink-400 bg-pink-500/10'
-                                : 'border-slate-600 text-slate-400 bg-slate-800/60'
-                            }`}>
-                              {getNoiseBadge(h)}
-                            </span>
-                          )}
+                        <div className={`font-mono font-bold tracking-widest text-[10px] uppercase mb-1 ${selectedHotspot?.id === h.id ? 'text-emerald-400' : 'text-slate-200'}`}>
+                          {h.title}
                         </div>
                         <div className={`text-[11px] font-mono leading-relaxed ${selectedHotspot?.id === h.id ? 'text-emerald-500/80' : 'text-slate-400'}`}>
                           {h.description}
