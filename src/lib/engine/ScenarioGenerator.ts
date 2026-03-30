@@ -194,42 +194,94 @@ export function generateInstantBaseScenario(): ScenarioContext {
 export function generateMockHotspots(baseScenario: ScenarioContext): Hotspot[] {
   const hotspots: Hotspot[] = [];
   const systems: SystemType[] = ['Temperature', 'Air', 'Water', 'Energy', 'Mobility', 'Waste', 'Vegetation'];
-  const types: Hotspot['type'][] = ['news', 'social', 'complaint', 'alert', 'note', 'hint', 'false_lead'];
   
-  // Find original anchors (or invent some if missing)
+  // Find original anchors
   const originalScenario = MOCK_SCENARIOS.find(s => s.code === baseScenario.code);
   const anchors = originalScenario?.anchors || [{lat: -23.55, lng: -46.63}];
 
   for (let i = 0; i < 25; i++) {
     const stageAppeared = Math.floor(Math.random() * 5) + 1;
-    const isRoot = Math.random() < 0.5;
-    const system = isRoot ? baseScenario.rootCauseSystem : systems[Math.floor(Math.random() * systems.length)];
-    const type = types[Math.floor(Math.random() * types.length)];
     const anchor = anchors[Math.floor(Math.random() * anchors.length)];
-    const range = isRoot ? 0.02 : 0.08;
+    
+    // We want ~10 distractors and ~15 true intelligence points
+    const isDistractor = i >= 15;
+    const isRoot = !isDistractor && Math.random() < 0.6;
+    
+    const system = isRoot ? baseScenario.rootCauseSystem : systems[Math.floor(Math.random() * systems.length)];
+    const range = isRoot ? 0.02 : (isDistractor ? 0.09 : 0.05);
+
+    // MUNDANE DISTRACTORS
+    const distractors = [
+      { type: 'social', title: 'NOISE COMPLAINT', sys: 'Social', msg: '@resident: My neighbor\'s party is blasting music since 4 AM! Someone call the cops!' },
+      { type: 'complaint', title: 'POTHOLE DAMAGE', sys: 'Mobility', msg: 'PROCON 881: Tire exploded on a massive pothole in the avenue.' },
+      { type: 'social', title: 'LOST PET', sys: 'Vegetation', msg: 'LOST DOG: Golden Retriever near the park. Please DM if found!' },
+      { type: 'complaint', title: 'INTERNET OUTAGE', sys: 'Energy', msg: 'Fiber optic provider down again. Working from home is impossible today.' },
+      { type: 'news', title: 'SPORTS UPDATE', sys: 'Social', msg: 'Local stadium preparing for the giant derby match tonight. Heavy traffic expected.' },
+      { type: 'false_lead', title: 'UFO SIGHTING?', sys: 'Air', msg: '@tinfoil_hat: I swear I saw strange flashing lights in the clouds last night! Not a drone!' },
+      { type: 'social', title: 'RESTAURANT RANT', sys: 'Social', msg: 'Terrible service at the new downtown bistro. Do not recommend.' },
+      { type: 'complaint', title: 'BROKEN ATM', sys: 'Energy', msg: 'Bank terminal near the metro station swallowed my card.' }
+    ];
+
+    // REAL INTELLIGENCE TEMPLATES
+    const getTrueMessage = (sys: SystemType, t: Hotspot['type'], root: boolean) => {
+      const templates = {
+        news: [
+          `BREAKING: Local authorities investigating unexpected ${sys} infrastructure anomalies.`,
+          `News Alert: Services disrupted as ${sys} systems report unprecedented strain.`,
+          `Live: Reporters on the ground note visible impact on ${sys} networks in the zone.`
+        ],
+        social: [
+          `@sp_citizen: This is ridiculous! The ${sys} situation here is completely out of control! 😡`,
+          `@urban_watcher: Anyone else noticing the weird ${sys} issues? Something is not right...`,
+          `@daily_commuter: Stuck again. They said the ${sys} was fixed. It's WORSE.`
+        ],
+        complaint: [
+          `PROCON Ticket #019: Consecutive ${sys} failures. Requesting immediate municipal action.`,
+          `Call center overwhelmed: 4,000+ complaints mapping directly to ${sys} sector.`,
+          `Neighborhood association filing class action over ${sys} mismanagement.`
+        ],
+        alert: [
+          `AUTOMATED WARNING: Threshold exceeded in ${sys} node.`,
+          `SYSTEM ALERT: Critical instability propagating through ${sys} sub-grid.`,
+          `NODE FAILURE: ${sys} sensor offline. Dispatching team.`
+        ],
+        hint: [
+          `Field Unit: Traces suggest the ${sys} failure is compounding secondary sectors.`,
+          `Internal Memo: Do not dismiss the ${sys} logs, they might be the origin point.`
+        ]
+      };
+
+      const generic = [`Unverified report of primary damage hitting ${sys} grids.`];
+      const category = templates[t as keyof typeof templates] || generic;
+      return category[Math.floor(Math.random() * category.length)];
+    };
+
+    let finalType, finalTitle, finalDesc, finalSystem;
+
+    if (isDistractor) {
+      const d = distractors[Math.floor(Math.random() * distractors.length)];
+      finalType = d.type as Hotspot['type'];
+      finalTitle = d.title;
+      finalDesc = d.msg;
+      finalSystem = (d.sys === 'Social' ? 'Mobility' : d.sys) as SystemType;
+    } else {
+      const types: Hotspot['type'][] = ['news', 'social', 'complaint', 'alert', 'hint'];
+      finalType = types[Math.floor(Math.random() * types.length)];
+      finalTitle = finalType === 'social' ? 'CITIZEN REPORT' : finalType === 'news' ? 'MEDIA INTERCEPT' : finalType === 'alert' ? 'SYSTEM_ALERT' : 'FIELD_ADVISORY';
+      finalDesc = getTrueMessage(system, finalType, isRoot);
+      finalSystem = system;
+    }
 
     hotspots.push({
       id: `hs-${i}-${Date.now()}`,
       lat: randomOffset(anchor.lat, range),
       lng: randomOffset(anchor.lng, range),
-      type,
-      title: "FALLBACK_ANOMALY",
-      description: `Locally simulated anomaly for ${system}`,
-      system,
+      type: finalType,
+      title: finalTitle,
+      description: finalDesc,
+      system: finalSystem,
       stageAppeared
     });
   }
   return hotspots;
-}
-
-export async function fetchDeepSeekHotspots(scenarioCode: string): Promise<Hotspot[]> {
-  try {
-    const res = await fetch(`/api/scenario?code=${scenarioCode}`);
-    if (!res.ok) throw new Error('API route failed');
-    const data = await res.json();
-    return data.hotspots;
-  } catch (err) {
-    console.error("Failed to fetch scenario from API:", err);
-    throw err; // let caller handle fallback
-  }
 }

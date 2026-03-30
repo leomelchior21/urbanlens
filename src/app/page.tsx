@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useCrisisStore } from '@/store/useCrisisStore';
-import { generateInstantBaseScenario, generateMockHotspots, fetchDeepSeekHotspots } from '@/lib/engine/ScenarioGenerator';
+import { generateInstantBaseScenario, generateMockHotspots } from '@/lib/engine/ScenarioGenerator';
 import { TopBar } from '@/components/layout/TopBar';
 import { LeftPanel } from '@/components/layout/LeftPanel';
 import { RightPanel } from '@/components/layout/RightPanel';
@@ -20,14 +20,8 @@ export default function UrbanLensApp() {
       setScenario(baseScenario);
       setLoading(false);
 
-      // 2. Fetch AI-generated hotspots asynchronously
-      try {
-        const hotspots = await fetchDeepSeekHotspots(baseScenario.code);
-        setHotspots(hotspots);
-      } catch (err) {
-        // Fallback if DeepSeek is offline/unavailable or throws error
-        setHotspots(generateMockHotspots(baseScenario));
-      }
+      // 2. Hydrate with rich hardcoded logic immediately
+      setHotspots(generateMockHotspots(baseScenario));
     }
     init();
   }, [setScenario, setHotspots]);
