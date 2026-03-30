@@ -8,7 +8,9 @@ import {
   Car, 
   Trash2, 
   TreePine,
-  ChevronRight
+  Layers3,
+  Users,
+  HeartPulse
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -25,6 +27,9 @@ const SYSTEMS: { type: SystemType; icon: React.ReactNode; label: string; color: 
   { type: 'Mobility', icon: <Car className="w-5 h-5" />, label: 'Transit', color: 'text-orange-500' },
   { type: 'Waste', icon: <Trash2 className="w-5 h-5" />, label: 'Sanitation', color: 'text-stone-400' },
   { type: 'Vegetation', icon: <TreePine className="w-5 h-5" />, label: 'Ecology', color: 'text-green-500' },
+  { type: 'Soil', icon: <Layers3 className="w-5 h-5" />, label: 'Terrain', color: 'text-amber-600' },
+  { type: 'Social', icon: <Users className="w-5 h-5" />, label: 'Civic Pulse', color: 'text-pink-500' },
+  { type: 'Health', icon: <HeartPulse className="w-5 h-5" />, label: 'Public Health', color: 'text-rose-500' },
 ];
 
 export const LeftPanel = () => {
@@ -44,7 +49,7 @@ export const LeftPanel = () => {
         </div>
 
         {/* Buttons List */}
-        <div className="flex-1 flex flex-col justify-start overflow-hidden w-full gap-2 mt-2">
+        <div className="flex-1 flex flex-col justify-start overflow-y-auto w-full gap-2 mt-2 pr-1 custom-scrollbar">
           {SYSTEMS.map((sys) => {
             const isActive = activeSystem === sys.type;
             // Get the hex/tail color word to inject safely into borders
@@ -98,4 +103,3 @@ export const LeftPanel = () => {
     </div>
   );
 };
-

@@ -60,6 +60,16 @@ interface CrisisState {
   unpinEvidence: (id: string) => void;
 }
 
+function getInitialSystemForScenario(scenario: ScenarioContext): SystemType {
+  const stageOneHotspots = scenario.hotspots.filter((hotspot) => hotspot.stageAppeared === 1);
+
+  if (stageOneHotspots.some((hotspot) => hotspot.system === scenario.rootCauseSystem)) {
+    return scenario.rootCauseSystem;
+  }
+
+  return stageOneHotspots[0]?.system ?? scenario.rootCauseSystem;
+}
+
 export const useCrisisStore = create<CrisisState>((set) => ({
   activeSystem: 'Temperature', // Default
   stage: 1,
@@ -85,7 +95,11 @@ export const useCrisisStore = create<CrisisState>((set) => ({
     return { timeRemaining: state.timeRemaining - 1 };
   }),
 
-  setScenario: (scenario) => set({ scenarioContext: scenario }),
+  setScenario: (scenario) => set({
+    scenarioContext: scenario,
+    activeSystem: getInitialSystemForScenario(scenario),
+    selectedHotspot: null,
+  }),
   setHotspots: (newHotspots) => set((state) => ({
     scenarioContext: state.scenarioContext ? { ...state.scenarioContext, hotspots: newHotspots } : null
   })),

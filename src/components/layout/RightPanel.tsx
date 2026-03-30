@@ -1,9 +1,42 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useCrisisStore, Hotspot } from '@/store/useCrisisStore';
-import { LineChart, Line, BarChart, Bar, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import type { ChartConfig } from '@/store/useCrisisStore';
 import { Activity, Radio, Paperclip, Mail, X, Trash2, MapPin, FileText, CheckCircle2, AlertTriangle, EyeOff, TerminalSquare, Inbox } from 'lucide-react';
 
 type PanelType = 'metrics' | 'feed' | 'evidence' | 'dossier' | null;
+
+const CHART_SERIES_COLORS = ['#10b981', '#38bdf8', '#f59e0b', '#f43f5e', '#a855f7', '#22c55e'];
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function formatSeriesLabel(key: string) {
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function getChartCategoryKey(chart: ChartConfig) {
+  return chart.type === 'radar' ? 'metric' : 'stage';
+}
+
+function getChartSeriesKeys(chart: ChartConfig) {
+  const categoryKey = getChartCategoryKey(chart);
+  const seriesKeys = new Set<string>();
+
+  chart.data.forEach((point) => {
+    Object.entries(point).forEach(([key, value]) => {
+      if (key !== categoryKey && isFiniteNumber(value)) {
+        seriesKeys.add(key);
+      }
+    });
+  });
+
+  return Array.from(seriesKeys);
+}
 
 export const RightPanel = () => {
   const { scenarioContext, activeSystem, stage, pinnedEvidence, unpinEvidence, selectedHotspot, setSelectedHotspot } = useCrisisStore();
@@ -11,18 +44,19 @@ export const RightPanel = () => {
   const feedScrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-open feed and scroll when a hotspot is selected from the map
-  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
   useEffect(() => {
-    if (selectedHotspot) {
-      if (activePanel !== 'feed') setActivePanel('feed');
-      // Delay scrolling slightly to allow the panel to open/render
-      setTimeout(() => {
-        const el = document.getElementById(`feed-item-${selectedHotspot.id}`);
-        if (el && feedScrollRef.current) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 100);
-    }
+    if (!selectedHotspot) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setActivePanel((currentPanel) => currentPanel === 'feed' ? currentPanel : 'feed');
+
+      const el = document.getElementById(`feed-item-${selectedHotspot.id}`);
+      if (el && feedScrollRef.current) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+
+    return () => window.clearTimeout(timeoutId);
   }, [selectedHotspot]);
 
   // Extract chart key based on active system
@@ -43,6 +77,101 @@ export const RightPanel = () => {
   })).slice(0, Math.max(1, stage)), [scenarioContext?.chartData, dataKey, stage]);
 
   if (!scenarioContext) return null;
+
+  const renderConfiguredChart = (chart: ChartConfig) => {
+    const seriesKeys = getChartSeriesKeys(chart);
+    const visibleData = chart.type === 'radar'
+      ? chart.data
+      : chart.data.filter((datum) => !isFiniteNumber(datum.stage) || datum.stage <= stage);
+
+    if (seriesKeys.length === 0 || visibleData.length === 0) {
+      return (
+        <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-500 font-mono">
+          Chart data unavailable.
+        </div>
+      );
+    }
+
+    if (chart.type === 'line') {
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={visibleData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+            <XAxis dataKey="stage" stroke="#475569" tick={{ fontSize: 9, fill: '#64748b', fontFamily: 'monospace' }} />
+            <YAxis stroke="#475569" tick={{ fontSize: 9, fill: '#64748b', fontFamily: 'monospace' }} />
+            <Tooltip contentStyle={{ backgroundColor: '#020617', borderColor: '#1e293b', color: '#10b981', fontFamily: 'monospace', fontSize: '10px' }} />
+            <Legend wrapperStyle={{ fontSize: '10px', fontFamily: 'monospace', color: '#94a3b8' }} />
+            {seriesKeys.map((key, index) => (
+              <Line
+                key={key}
+                type="monotone"
+                dataKey={key}
+                name={formatSeriesLabel(key)}
+                stroke={CHART_SERIES_COLORS[index % CHART_SERIES_COLORS.length]}
+                strokeWidth={2}
+                strokeDasharray={/(baseline|threshold|expected)/i.test(key) ? '4 4' : undefined}
+                dot={seriesKeys.length === 1 ? { r: 3, fill: '#020617', stroke: CHART_SERIES_COLORS[index % CHART_SERIES_COLORS.length], strokeWidth: 2 } : false}
+                activeDot={{ r: 4 }}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      );
+    }
+
+    if (chart.type === 'bar' || chart.type === 'stacked_bar') {
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={visibleData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+            <XAxis dataKey="stage" stroke="#475569" tick={{ fontSize: 9, fill: '#64748b', fontFamily: 'monospace' }} />
+            <YAxis stroke="#475569" tick={{ fontSize: 9, fill: '#64748b', fontFamily: 'monospace' }} />
+            <Tooltip contentStyle={{ backgroundColor: '#020617', borderColor: '#1e293b', color: '#10b981', fontFamily: 'monospace', fontSize: '10px' }} />
+            <Legend wrapperStyle={{ fontSize: '10px', fontFamily: 'monospace', color: '#94a3b8' }} />
+            {seriesKeys.map((key, index) => (
+              <Bar
+                key={key}
+                dataKey={key}
+                name={formatSeriesLabel(key)}
+                fill={CHART_SERIES_COLORS[index % CHART_SERIES_COLORS.length]}
+                stackId={chart.type === 'stacked_bar' ? 'stack' : undefined}
+              />
+            ))}
+          </BarChart>
+        </ResponsiveContainer>
+      );
+    }
+
+    if (chart.type === 'radar') {
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          <RadarChart cx="50%" cy="50%" outerRadius="70%" data={visibleData}>
+            <PolarGrid stroke="#1e293b" />
+            <PolarAngleAxis dataKey="metric" tick={{ fontSize: 8, fill: '#64748b', fontFamily: 'monospace' }} />
+            <PolarRadiusAxis angle={30} tick={false} stroke="#1e293b" />
+            <Tooltip contentStyle={{ backgroundColor: '#020617', borderColor: '#1e293b', color: '#10b981', fontFamily: 'monospace', fontSize: '10px' }} />
+            <Legend wrapperStyle={{ fontSize: '10px', fontFamily: 'monospace', color: '#94a3b8' }} />
+            {seriesKeys.map((key, index) => (
+              <Radar
+                key={key}
+                name={formatSeriesLabel(key)}
+                dataKey={key}
+                stroke={CHART_SERIES_COLORS[index % CHART_SERIES_COLORS.length]}
+                fill={CHART_SERIES_COLORS[index % CHART_SERIES_COLORS.length]}
+                fillOpacity={Math.max(0.15, 0.35 - (index * 0.07))}
+              />
+            ))}
+          </RadarChart>
+        </ResponsiveContainer>
+      );
+    }
+
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center text-[10px] text-slate-500 font-mono">
+        Chart format locked.
+      </div>
+    );
+  };
 
   // Filter hotspots for the active system that have appeared up to the current stage
   const visibleHotspots = scenarioContext.hotspots
@@ -126,37 +255,7 @@ export const RightPanel = () => {
                       <div className="text-[9px] text-slate-400 mb-3 font-mono leading-relaxed">{chart.measureDescription}</div>
                       
                       <div className="h-48 w-full bg-[#020617]/50 backdrop-blur-sm border border-slate-900 relative">
-                        <ResponsiveContainer width="100%" height="100%">
-                           {chart.type === 'line' ? (
-                              <LineChart data={chart.data.filter(d => (d.stage as number) <= stage)} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                                <XAxis dataKey="stage" stroke="#475569" tick={{fontSize: 9, fill: '#64748b', fontFamily: 'monospace'}} />
-                                <YAxis stroke="#475569" tick={{fontSize: 9, fill: '#64748b', fontFamily: 'monospace'}} />
-                                <Tooltip contentStyle={{ backgroundColor: '#020617', borderColor: '#1e293b', color: '#10b981', fontFamily: 'monospace', fontSize: '10px' }} />
-                                <Line type="monotone" dataKey="delayIndex" stroke="#10b981" strokeWidth={2} dot={{ r: 3, fill: '#020617', stroke: '#10b981', strokeWidth: 2 }} />
-                              </LineChart>
-                           ) : chart.type === 'radar' ? (
-                              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chart.data}>
-                                <PolarGrid stroke="#1e293b" />
-                                <PolarAngleAxis dataKey="metric" tick={{fontSize: 8, fill: '#64748b', fontFamily: 'monospace'}} />
-                                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} stroke="#1e293b" />
-                                <Radar name="Santo Andre" dataKey="SantoAndre" stroke="#10b981" fill="#10b981" fillOpacity={0.4} />
-                                <Radar name="Sao Bernardo" dataKey="SaoBernardo" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} />
-                                <Tooltip contentStyle={{ backgroundColor: '#020617', borderColor: '#1e293b', color: '#10b981', fontFamily: 'monospace', fontSize: '10px' }} />
-                              </RadarChart>
-                           ) : chart.type === 'stacked_bar' ? (
-                              <BarChart data={chart.data.filter(d => (d.stage as number) <= stage)} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                                <XAxis dataKey="stage" stroke="#475569" tick={{fontSize: 9, fill: '#64748b', fontFamily: 'monospace'}} />
-                                <YAxis stroke="#475569" tick={{fontSize: 9, fill: '#64748b', fontFamily: 'monospace'}} />
-                                <Tooltip contentStyle={{ backgroundColor: '#020617', borderColor: '#1e293b', color: '#10b981', fontFamily: 'monospace', fontSize: '10px' }} />
-                                <Bar dataKey="pumpEnergyKW" fill="#eab308" stackId="a" />
-                                <Bar dataKey="soilMoistureIndex" fill="#0ea5e9" stackId="a" />
-                              </BarChart>
-                           ) : (
-                               <div className="w-full h-full flex flex-col items-center justify-center text-[10px] text-slate-500 font-mono">Chart format locked.</div>
-                           )}
-                        </ResponsiveContainer>
+                        {renderConfiguredChart(chart)}
                       </div>
                     </div>
                   ))}
