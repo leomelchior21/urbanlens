@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useCrisisStore, Hotspot } from '@/store/useCrisisStore';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Activity, Radio, Paperclip, Mail, X, Trash2, MapPin, FileText, CheckCircle2, AlertTriangle } from 'lucide-react';
@@ -6,8 +6,23 @@ import { Activity, Radio, Paperclip, Mail, X, Trash2, MapPin, FileText, CheckCir
 type PanelType = 'metrics' | 'feed' | 'evidence' | 'dossier' | null;
 
 export const RightPanel = () => {
-  const { scenarioContext, activeSystem, stage, pinnedEvidence, unpinEvidence } = useCrisisStore();
+  const { scenarioContext, activeSystem, stage, pinnedEvidence, unpinEvidence, selectedHotspot, setSelectedHotspot } = useCrisisStore();
   const [activePanel, setActivePanel] = useState<PanelType>('dossier'); // Mission Dossier open by default
+  const feedScrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-open feed and scroll when a hotspot is selected from the map
+  useEffect(() => {
+    if (selectedHotspot) {
+      if (activePanel !== 'feed') setActivePanel('feed');
+      // Delay scrolling slightly to allow the panel to open/render
+      setTimeout(() => {
+        const el = document.getElementById(`feed-item-${selectedHotspot.id}`);
+        if (el && feedScrollRef.current) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  }, [selectedHotspot]);
 
   if (!scenarioContext) return null;
 
@@ -125,17 +140,32 @@ export const RightPanel = () => {
 
           {/* Feed Panel */}
           {activePanel === 'feed' && (
-            <div className="p-4 space-y-3">
+            <div className="p-4 space-y-3" ref={feedScrollRef}>
               {visibleHotspots.length === 0 ? (
                 <div className="text-[10px] font-mono tracking-widest uppercase center text-slate-600 italic py-4">No signals detected for this system yet.</div>
               ) : (
                 visibleHotspots.map(h => (
-                  <div key={h.id} className="p-3 bg-[#0a111a] border border-slate-800 text-sm hover:border-emerald-900/50 transition-colors">
+                  <div 
+                    key={h.id} 
+                    id={`feed-item-${h.id}`}
+                    onClick={() => setSelectedHotspot(h)}
+                    className={`p-3 border text-sm transition-colors cursor-pointer ${
+                      selectedHotspot?.id === h.id 
+                        ? 'bg-emerald-900/20 border-emerald-500 shadow-[inset_0_0_15px_rgba(52,211,153,0.1)]' 
+                        : 'bg-[#0a111a] border-slate-800 hover:border-emerald-900/50'
+                    }`}
+                  >
                     <div className="flex items-start space-x-3 text-slate-300">
-                      <div className="mt-0.5">{getIconForType(h.type)}</div>
+                      <div className="mt-0.5" style={{ color: selectedHotspot?.id === h.id ? '#34d399' : undefined }}>
+                        {getIconForType(h.type)}
+                      </div>
                       <div className="flex-1">
-                        <div className="font-mono font-bold tracking-widest text-slate-200 text-[10px] uppercase mb-1">{h.title}</div>
-                        <div className="text-[11px] font-mono leading-relaxed text-slate-400">{h.description}</div>
+                        <div className={`font-mono font-bold tracking-widest text-[10px] uppercase mb-1 ${selectedHotspot?.id === h.id ? 'text-emerald-400' : 'text-slate-200'}`}>
+                          {h.title}
+                        </div>
+                        <div className={`text-[11px] font-mono leading-relaxed ${selectedHotspot?.id === h.id ? 'text-emerald-500/80' : 'text-slate-400'}`}>
+                          {h.description}
+                        </div>
                       </div>
                     </div>
                   </div>

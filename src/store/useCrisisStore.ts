@@ -33,7 +33,7 @@ interface CrisisState {
   selectedHotspot: Hotspot | null;
   isRunning: boolean;
   pinnedEvidence: Hotspot[]; // User-saved evidence
-  
+
   // Actions
   setActiveSystem: (sys: SystemType) => void;
   setStage: (stage: number) => void;
@@ -55,7 +55,7 @@ export const useCrisisStore = create<CrisisState>((set) => ({
   selectedHotspot: null,
   isRunning: true,
   pinnedEvidence: [],
-  
+
   setActiveSystem: (sys) => set({ activeSystem: sys, selectedHotspot: null }),
   setStage: (stage) => set({ stage }),
   tickTimer: () => set((state) => {
@@ -73,22 +73,22 @@ export const useCrisisStore = create<CrisisState>((set) => ({
   }),
 
   setScenario: (scenario) => set({ scenarioContext: scenario }),
-  setHotspots: (newHotspots) => set((state) => ({ 
-    scenarioContext: state.scenarioContext ? { ...state.scenarioContext, hotspots: newHotspots } : null 
+  setHotspots: (newHotspots) => set((state) => ({
+    scenarioContext: state.scenarioContext ? { ...state.scenarioContext, hotspots: newHotspots } : null
   })),
   setSelectedHotspot: (hotspot) => set({ selectedHotspot: hotspot }),
-  pinEvidence: (hotspot) => set((state) => ({ 
-    pinnedEvidence: state.pinnedEvidence.find(h => h.id === hotspot.id) 
-      ? state.pinnedEvidence 
-      : [...state.pinnedEvidence, hotspot] 
+  pinEvidence: (hotspot) => set((state) => ({
+    pinnedEvidence: state.pinnedEvidence.find(h => h.id === hotspot.id)
+      ? state.pinnedEvidence
+      : [...state.pinnedEvidence, hotspot]
   })),
   unpinEvidence: (id) => set((state) => ({
     pinnedEvidence: state.pinnedEvidence.filter(h => h.id !== id)
   })),
-  resetCrisis: () => set({ 
-    stage: 1, 
-    timeRemaining: 60, 
-    selectedHotspot: null, 
+  resetCrisis: () => set({
+    stage: 1,
+    timeRemaining: 60,
+    selectedHotspot: null,
     isRunning: true,
     pinnedEvidence: []
   }),

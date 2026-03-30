@@ -40,10 +40,7 @@ export const UrbanMap = () => {
         mapStyle={MAP_STYLE}
         minZoom={9}
         maxZoom={18}
-        // maxBounds={[
-        //   [-47.0, -24.0], // SW
-        //   [-46.0, -23.0]  // NE
-        // ]}
+        onClick={() => setSelectedHotspot(null)}
         interactiveLayerIds={['building-extrusion']}
       >
         {/* Adds 3D buildings to the dark map */}
