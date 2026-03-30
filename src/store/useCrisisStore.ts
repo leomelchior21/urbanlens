@@ -22,7 +22,7 @@ export interface ScenarioContext {
   dossier: string; // Fake email from the mayor's advisor
   stageTexts: Record<number, string>;
   hotspots: Hotspot[];
-  chartData: any[]; // Used for RightPanel charts
+  chartData: Record<string, unknown>[]; // Used for RightPanel charts
 }
 
 interface CrisisState {

@@ -11,6 +11,7 @@ export const RightPanel = () => {
   const feedScrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-open feed and scroll when a hotspot is selected from the map
+  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
   useEffect(() => {
     if (selectedHotspot) {
       if (activePanel !== 'feed') setActivePanel('feed');
@@ -24,13 +25,6 @@ export const RightPanel = () => {
     }
   }, [selectedHotspot]);
 
-  if (!scenarioContext) return null;
-
-  // Filter hotspots for the active system that have appeared up to the current stage
-  const visibleHotspots = scenarioContext.hotspots
-    .filter(h => h.system === activeSystem && h.stageAppeared <= stage)
-    .sort((a, b) => b.stageAppeared - a.stageAppeared);
-
   // Extract chart key based on active system
   const chartDataKeyMap: Record<string, string> = {
     'Temperature': 'temperature',
@@ -43,10 +37,17 @@ export const RightPanel = () => {
   };
   const dataKey = chartDataKeyMap[activeSystem] || 'temperature';
   
-  const chartData = scenarioContext.chartData.map(d => ({
+  const chartData = React.useMemo(() => (scenarioContext?.chartData || []).map((d: Record<string, unknown>) => ({
     ...d,
-    [dataKey]: d[dataKey] || (Math.random() * 100)
-  })).slice(0, Math.max(1, stage)); 
+    [dataKey]: (d[dataKey] as number) || (((d.stage as number) || stage) * 17) % 100
+  })).slice(0, Math.max(1, stage)), [scenarioContext?.chartData, dataKey, stage]);
+
+  if (!scenarioContext) return null;
+
+  // Filter hotspots for the active system that have appeared up to the current stage
+  const visibleHotspots = scenarioContext.hotspots
+    .filter(h => h.system === activeSystem && h.stageAppeared <= stage)
+    .sort((a, b) => b.stageAppeared - a.stageAppeared);
 
   const getIconForType = (type: Hotspot['type']) => {
     switch (type) {
@@ -57,7 +58,7 @@ export const RightPanel = () => {
     }
   };
 
-  const getDockButton = (type: PanelType, Icon: any, label: string) => {
+  const getDockButton = (type: PanelType, Icon: React.ElementType, label: string) => {
     const isActive = activePanel === type;
     return (
       <button
@@ -211,11 +212,11 @@ export const RightPanel = () => {
                  <div className="absolute top-0 left-0 w-full h-1 bg-yellow-600"></div>
                  <div className="text-slate-500 mb-4 border-b border-slate-800 pb-2 font-mono text-[9px] uppercase tracking-widest space-y-1">
                     <p>TO: <span className="text-slate-300">INVESTIGATION UNIT</span></p>
-                    <p>FROM: <span className="text-slate-300">MAYOR'S OFFICE (SECURE)</span></p>
+                    <p>FROM: <span className="text-slate-300">MAYOR&apos;S OFFICE (SECURE)</span></p>
                     <p>SUBJECT: <span className="text-yellow-500">{scenarioContext.code} {scenarioContext.title}</span></p>
                  </div>
                  <p className="whitespace-pre-line text-[11px] font-mono text-yellow-500/90 leading-relaxed uppercase">
-                   "{scenarioContext.dossier}"
+                   &quot;{scenarioContext.dossier}&quot;
                  </p>
                </div>
             </div>

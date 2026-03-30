@@ -3,7 +3,6 @@ import Map, { MapRef, Marker, Source, Layer } from 'react-map-gl/maplibre';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useCrisisStore } from '@/store/useCrisisStore';
-import { SystemLayer } from './SystemLayer';
 
 // MapTiler / Carto Dark Matter style URL
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
@@ -21,6 +20,7 @@ export const UrbanMap = () => {
   const { scenarioContext, activeSystem, selectedHotspot, setSelectedHotspot, stage, pinEvidence, pinnedEvidence } = useCrisisStore();
 
   const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
 
   if (!mounted) return null;
@@ -55,9 +55,6 @@ export const UrbanMap = () => {
           we will rely primarily on our custom layers for the tactical feel. 
         */}
 
-        {/* Tactical System Layers (Heatmap, flows, etc) */}
-        <SystemLayer />
-
         {/* Hotspots */}
         {visibleHotspots.map(hotspot => (
           <Marker
@@ -65,6 +62,7 @@ export const UrbanMap = () => {
             longitude={hotspot.lng}
             latitude={hotspot.lat}
             anchor="bottom"
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onClick={(e: any) => {
               e.originalEvent.stopPropagation();
               setSelectedHotspot(hotspot);
@@ -76,35 +74,33 @@ export const UrbanMap = () => {
               <div className="relative flex items-center justify-center">
                 {/* Radar Ping rings */}
                 <div className={`absolute rounded-full pointer-events-none transition-all animate-ping
-                  ${
-                    stage === 5 ? 'w-8 h-8 duration-700 opacity-70' :
+                  ${stage === 5 ? 'w-8 h-8 duration-700 opacity-70' :
                     stage >= 3 ? 'w-6 h-6 duration-1000 opacity-60' :
-                    'w-4 h-4 duration-[1500ms] opacity-50'
+                      'w-4 h-4 duration-[1500ms] opacity-50'
                   }
                   ${hotspot.system === 'Temperature' ? 'bg-orange-500/50' :
                     hotspot.system === 'Air' ? 'bg-yellow-400/50' :
-                    hotspot.system === 'Water' ? 'bg-cyan-500/50' :
-                    hotspot.system === 'Energy' ? 'bg-purple-500/50' :
-                    hotspot.system === 'Mobility' ? 'bg-emerald-400/50' :
-                    hotspot.system === 'Waste' ? 'bg-stone-400/50' :
-                    'bg-green-500/50'
-                  }`} 
+                      hotspot.system === 'Water' ? 'bg-cyan-500/50' :
+                        hotspot.system === 'Energy' ? 'bg-purple-500/50' :
+                          hotspot.system === 'Mobility' ? 'bg-emerald-400/50' :
+                            hotspot.system === 'Waste' ? 'bg-stone-400/50' :
+                              'bg-green-500/50'
+                  }`}
                 />
-                
+
                 {/* Core Core */}
                 <div className={`relative rounded-full z-10 transition-all duration-300 
-                  ${
-                    stage === 5 ? 'w-2 h-2 opacity-100' :
+                  ${stage === 5 ? 'w-2 h-2 opacity-100' :
                     stage >= 3 ? 'w-1.5 h-1.5 opacity-90' :
-                    'w-1 h-1 opacity-80'
+                      'w-1 h-1 opacity-80'
                   }
                   ${hotspot.system === 'Temperature' ? 'bg-orange-400 shadow-[0_0_8px_#f97316]' :
                     hotspot.system === 'Air' ? 'bg-yellow-400 shadow-[0_0_8px_#facc15]' :
-                    hotspot.system === 'Water' ? 'bg-cyan-400 shadow-[0_0_8px_#06b6d4]' :
-                    hotspot.system === 'Energy' ? 'bg-purple-400 shadow-[0_0_8px_#a855f7]' :
-                    hotspot.system === 'Mobility' ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' :
-                    hotspot.system === 'Waste' ? 'bg-stone-300 shadow-[0_0_8px_#a8a29e]' :
-                    'bg-green-400 shadow-[0_0_8px_#22c55e]'
+                      hotspot.system === 'Water' ? 'bg-cyan-400 shadow-[0_0_8px_#06b6d4]' :
+                        hotspot.system === 'Energy' ? 'bg-purple-400 shadow-[0_0_8px_#a855f7]' :
+                          hotspot.system === 'Mobility' ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' :
+                            hotspot.system === 'Waste' ? 'bg-stone-300 shadow-[0_0_8px_#a8a29e]' :
+                              'bg-green-400 shadow-[0_0_8px_#22c55e]'
                   } ${selectedHotspot?.id === hotspot.id ? 'scale-[2.5] ring-2 ring-white/80 ring-offset-2 ring-offset-[#050b14]' : 'scale-100 hover:scale-[3]'}
                 `} />
               </div>
@@ -145,8 +141,8 @@ export const UrbanMap = () => {
                           }}
                           disabled={pinnedEvidence.some(h => h.id === hotspot.id)}
                           className={`text-[9px] font-mono tracking-widest uppercase font-bold px-2 py-1 transition-colors border ${pinnedEvidence.some(h => h.id === hotspot.id)
-                              ? 'bg-[#020617] text-slate-600 border-slate-800 cursor-not-allowed'
-                              : 'bg-emerald-900/20 text-emerald-400 hover:bg-emerald-900/40 border-emerald-900 shadow-[inset_0_0_10px_rgba(52,211,153,0.1)]'
+                            ? 'bg-[#020617] text-slate-600 border-slate-800 cursor-not-allowed'
+                            : 'bg-emerald-900/20 text-emerald-400 hover:bg-emerald-900/40 border-emerald-900 shadow-[inset_0_0_10px_rgba(52,211,153,0.1)]'
                             }`}
                         >
                           {pinnedEvidence.some(h => h.id === hotspot.id) ? '[ PINNED ]' : '[+ PIN EVIDENCE]'}
