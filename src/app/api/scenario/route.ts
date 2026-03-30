@@ -4,12 +4,15 @@ import { SystemType, Hotspot } from '@/store/useCrisisStore';
 
 export async function GET(request: Request) {
   const apiKey = process.env.DEEPSEEK_API_KEY;
-  const base = MOCK_SCENARIOS[Math.floor(Math.random() * MOCK_SCENARIOS.length)];
+  const { searchParams } = new URL(request.url);
+  const code = searchParams.get('code');
+  
+  const base = code ? MOCK_SCENARIOS.find(s => s.code === code) || MOCK_SCENARIOS[0] : MOCK_SCENARIOS[Math.floor(Math.random() * MOCK_SCENARIOS.length)];
 
   // If no API key is provided, use the fallback logic natively (simulated in the API route)
   if (!apiKey) {
     console.warn("No DEEPSEEK_API_KEY found, returning fallback data.");
-    return NextResponse.json(generateFallback(base));
+    return NextResponse.json({ hotspots: generateFallbackHotspots(base) });
   }
 
   try {
@@ -75,26 +78,19 @@ OUTPUT FORMAT EXACTLY LIKE THIS:
     // Generate the generic chart data
     const chartData = generateChartData();
 
+    // We only need to return the hotspots now since the base scenario is loaded instantly on the client
     return NextResponse.json({
-      id: `SCENARIO-${Date.now()}`,
-      title: base.title,
-      code: base.code,
-      rootCauseSystem: base.rootCauseSystem,
-      description: base.description,
-      dossier: base.dossier,
-      stageTexts: base.stageTexts,
-      hotspots: parsed.hotspots,
-      chartData
+      hotspots: parsed.hotspots
     });
     
   } catch (error) {
     console.error("DeepSeek failing, falling back:", error);
-    return NextResponse.json(generateFallback(base));
+    return NextResponse.json({ hotspots: generateFallbackHotspots(base) });
   }
 }
 
-// Fallback logic extracted from the generator
-function generateFallback(base: ScenarioData) {
+// Fallback logic extracted from the generator for just hotspots
+function generateFallbackHotspots(base: ScenarioData) {
   const hotspots: Hotspot[] = [];
   const systems: SystemType[] = ['Temperature', 'Air', 'Water', 'Energy', 'Mobility', 'Waste', 'Vegetation'];
   const types: Hotspot['type'][] = ['news', 'social', 'complaint', 'alert', 'note', 'hint', 'false_lead'];
@@ -119,17 +115,7 @@ function generateFallback(base: ScenarioData) {
     });
   }
 
-  return {
-    id: `SCENARIO-${Date.now()}`,
-    title: base.title,
-    code: base.code,
-    rootCauseSystem: base.rootCauseSystem,
-    description: base.description,
-    dossier: base.dossier,
-    stageTexts: base.stageTexts,
-    hotspots,
-    chartData: generateChartData()
-  };
+  return hotspots;
 }
 
 function generateChartData() {

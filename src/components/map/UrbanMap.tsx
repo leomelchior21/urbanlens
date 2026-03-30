@@ -75,15 +75,42 @@ export const UrbanMap = () => {
           >
             <div className={`relative cursor-pointer transition-all duration-500 ${selectedHotspot?.id === hotspot.id ? 'z-50' : 'z-10 hover:scale-125 hover:z-40'}`}>
 
-              {/* Hotspot Core Dot */}
-              <div className={`w-1.5 h-1.5 transition-all duration-300 ${hotspot.system === 'Temperature' ? 'bg-orange-500 shadow-[0_0_5px_#f97316]' :
-                  hotspot.system === 'Air' ? 'bg-yellow-400 shadow-[0_0_5px_#facc15]' :
-                  hotspot.system === 'Water' ? 'bg-cyan-500 shadow-[0_0_5px_#06b6d4]' :
-                  hotspot.system === 'Energy' ? 'bg-purple-500 shadow-[0_0_5px_#a855f7]' :
-                  hotspot.system === 'Mobility' ? 'bg-emerald-400 shadow-[0_0_5px_#34d399]' :
-                  hotspot.system === 'Waste' ? 'bg-stone-400 shadow-[0_0_5px_#a8a29e]' :
-                  'bg-green-500 shadow-[0_0_5px_#22c55e]'
-                } ${selectedHotspot?.id === hotspot.id ? 'scale-[2.5] animate-pulse ring-1 ring-white/50 ring-offset-1 ring-offset-[#050b14]' : 'scale-100 opacity-80 hover:opacity-100'}`} />
+              {/* Tactical Pulsing Dot */}
+              <div className="relative flex items-center justify-center">
+                {/* Radar Ping rings */}
+                <div className={`absolute rounded-full pointer-events-none transition-all animate-ping
+                  ${
+                    stage === 5 ? 'w-8 h-8 duration-700 opacity-70' :
+                    stage >= 3 ? 'w-6 h-6 duration-1000 opacity-60' :
+                    'w-4 h-4 duration-[1500ms] opacity-50'
+                  }
+                  ${hotspot.system === 'Temperature' ? 'bg-orange-500/50' :
+                    hotspot.system === 'Air' ? 'bg-yellow-400/50' :
+                    hotspot.system === 'Water' ? 'bg-cyan-500/50' :
+                    hotspot.system === 'Energy' ? 'bg-purple-500/50' :
+                    hotspot.system === 'Mobility' ? 'bg-emerald-400/50' :
+                    hotspot.system === 'Waste' ? 'bg-stone-400/50' :
+                    'bg-green-500/50'
+                  }`} 
+                />
+                
+                {/* Core Core */}
+                <div className={`relative rounded-full z-10 transition-all duration-300 
+                  ${
+                    stage === 5 ? 'w-2 h-2 opacity-100' :
+                    stage >= 3 ? 'w-1.5 h-1.5 opacity-90' :
+                    'w-1 h-1 opacity-80'
+                  }
+                  ${hotspot.system === 'Temperature' ? 'bg-orange-400 shadow-[0_0_8px_#f97316]' :
+                    hotspot.system === 'Air' ? 'bg-yellow-400 shadow-[0_0_8px_#facc15]' :
+                    hotspot.system === 'Water' ? 'bg-cyan-400 shadow-[0_0_8px_#06b6d4]' :
+                    hotspot.system === 'Energy' ? 'bg-purple-400 shadow-[0_0_8px_#a855f7]' :
+                    hotspot.system === 'Mobility' ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' :
+                    hotspot.system === 'Waste' ? 'bg-stone-300 shadow-[0_0_8px_#a8a29e]' :
+                    'bg-green-400 shadow-[0_0_8px_#22c55e]'
+                  } ${selectedHotspot?.id === hotspot.id ? 'scale-[2.5] ring-2 ring-white/80 ring-offset-2 ring-offset-[#050b14]' : 'scale-100 hover:scale-[3]'}
+                `} />
+              </div>
 
               {/* Cyberpunk Hook Popup */}
               {selectedHotspot?.id === hotspot.id && (() => {

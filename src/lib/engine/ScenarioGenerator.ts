@@ -162,8 +162,21 @@ export function randomOffset(base: number, range: number) {
   return base + (Math.random() - 0.5) * range;
 }
 
-export function generateScenarioFallback(): ScenarioContext {
-  // Just a thin stub in case the API route is completely inaccessible (e.g. static build)
+// Helper to get generic chart data
+export function generateChartData() {
+  return Array.from({ length: 5 }).map((_, i) => ({
+    stage: i + 1,
+    temperature: 30 + i * Math.random() * 2,
+    waterLevel: 50 + ((i*i) * Math.random() * 2),
+    energyUsage: 70 + (i * Math.random() * 6),
+    airQuality: 50 + (i * Math.random() * 15),
+    trafficIndex: 20 + (i * Math.random() * 10),
+    blockageLevel: Math.min(100, 30 + (i * 20)),
+    canopyDeficit: 10 + (i * 4)
+  }));
+}
+
+export function generateInstantBaseScenario(): ScenarioContext {
   const base = MOCK_SCENARIOS[Math.floor(Math.random() * MOCK_SCENARIOS.length)];
   return {
     id: `SCENARIO-${Date.now()}`,
@@ -173,18 +186,50 @@ export function generateScenarioFallback(): ScenarioContext {
     description: base.description || "",
     dossier: base.dossier || "No data available.",
     stageTexts: base.stageTexts || {},
-    hotspots: [],
-    chartData: []
+    hotspots: [], // Loaded asynchronously
+    chartData: generateChartData(),
   };
 }
 
-export async function generateScenario(): Promise<ScenarioContext> {
+export function generateMockHotspots(baseScenario: ScenarioContext): Hotspot[] {
+  const hotspots: Hotspot[] = [];
+  const systems: SystemType[] = ['Temperature', 'Air', 'Water', 'Energy', 'Mobility', 'Waste', 'Vegetation'];
+  const types: Hotspot['type'][] = ['news', 'social', 'complaint', 'alert', 'note', 'hint', 'false_lead'];
+  
+  // Find original anchors (or invent some if missing)
+  const originalScenario = MOCK_SCENARIOS.find(s => s.code === baseScenario.code);
+  const anchors = originalScenario?.anchors || [{lat: -23.55, lng: -46.63}];
+
+  for (let i = 0; i < 25; i++) {
+    const stageAppeared = Math.floor(Math.random() * 5) + 1;
+    const isRoot = Math.random() < 0.5;
+    const system = isRoot ? baseScenario.rootCauseSystem : systems[Math.floor(Math.random() * systems.length)];
+    const type = types[Math.floor(Math.random() * types.length)];
+    const anchor = anchors[Math.floor(Math.random() * anchors.length)];
+    const range = isRoot ? 0.02 : 0.08;
+
+    hotspots.push({
+      id: `hs-${i}-${Date.now()}`,
+      lat: randomOffset(anchor.lat, range),
+      lng: randomOffset(anchor.lng, range),
+      type,
+      title: "FALLBACK_ANOMALY",
+      description: `Locally simulated anomaly for ${system}`,
+      system,
+      stageAppeared
+    });
+  }
+  return hotspots;
+}
+
+export async function fetchDeepSeekHotspots(scenarioCode: string): Promise<Hotspot[]> {
   try {
-    const res = await fetch('/api/scenario');
+    const res = await fetch(`/api/scenario?code=${scenarioCode}`);
     if (!res.ok) throw new Error('API route failed');
-    return await res.json();
+    const data = await res.json();
+    return data.hotspots;
   } catch (err) {
     console.error("Failed to fetch scenario from API:", err);
-    return generateScenarioFallback();
+    throw err; // let caller handle fallback
   }
 }

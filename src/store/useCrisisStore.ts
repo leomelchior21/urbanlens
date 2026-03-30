@@ -39,6 +39,7 @@ interface CrisisState {
   setStage: (stage: number) => void;
   tickTimer: () => void;
   setScenario: (scenario: ScenarioContext) => void;
+  setHotspots: (hotspots: Hotspot[]) => void;
   setSelectedHotspot: (hotspot: Hotspot | null) => void;
   resetCrisis: () => void;
   toggleTimer: () => void;
@@ -70,7 +71,11 @@ export const useCrisisStore = create<CrisisState>((set) => ({
     }
     return { timeRemaining: state.timeRemaining - 1 };
   }),
+
   setScenario: (scenario) => set({ scenarioContext: scenario }),
+  setHotspots: (newHotspots) => set((state) => ({ 
+    scenarioContext: state.scenarioContext ? { ...state.scenarioContext, hotspots: newHotspots } : null 
+  })),
   setSelectedHotspot: (hotspot) => set({ selectedHotspot: hotspot }),
   pinEvidence: (hotspot) => set((state) => ({ 
     pinnedEvidence: state.pinnedEvidence.find(h => h.id === hotspot.id) 
