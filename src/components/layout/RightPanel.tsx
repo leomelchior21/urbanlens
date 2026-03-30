@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useCrisisStore, Hotspot } from '@/store/useCrisisStore';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, Radio, Paperclip, Mail, X, Trash2, MapPin, FileText, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { LineChart, Line, BarChart, Bar, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Activity, Radio, Paperclip, Mail, X, Trash2, MapPin, FileText, CheckCircle2, AlertTriangle, EyeOff, TerminalSquare, Inbox } from 'lucide-react';
 
 type PanelType = 'metrics' | 'feed' | 'evidence' | 'dossier' | null;
 
@@ -51,9 +51,12 @@ export const RightPanel = () => {
 
   const getIconForType = (type: Hotspot['type']) => {
     switch (type) {
-      case 'alert': return <AlertTriangle className="w-4 h-4 text-red-400" />;
+      case 'alert': return <AlertTriangle className="w-4 h-4 text-red-500" />;
       case 'news': return <FileText className="w-4 h-4 text-blue-400" />;
       case 'complaint': return <CheckCircle2 className="w-4 h-4 text-orange-400" />;
+      case 'internal_email': return <Inbox className="w-4 h-4 text-yellow-400" />;
+      case 'false_lead': return <EyeOff className="w-4 h-4 text-pink-400" />;
+      case 'hint': return <TerminalSquare className="w-4 h-4 text-cyan-400" />;
       default: return <MapPin className="w-4 h-4 text-slate-400" />;
     }
   };
@@ -113,29 +116,77 @@ export const RightPanel = () => {
           
           {/* Metrics Panel */}
           {activePanel === 'metrics' && (
-            <div className="p-4 flex flex-col h-full">
-              <p className="text-[10px] uppercase font-mono tracking-widest text-slate-500 mb-6">Analyzing {activeSystem} anomaly patterns over time.</p>
-              <div className="h-64 flex-shrink-0 bg-[#020617]/50 backdrop-blur-sm p-2 border border-slate-800 relative">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: -20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                    <XAxis dataKey="stage" stroke="#475569" tick={{fontSize: 10, fill: '#64748b', fontFamily: 'monospace'}} />
-                    <YAxis stroke="#475569" tick={{fontSize: 10, fill: '#64748b', fontFamily: 'monospace'}} />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#020617', borderColor: '#1e293b', color: '#10b981', fontFamily: 'monospace', fontSize: '10px', textTransform: 'uppercase' }} 
-                      itemStyle={{ color: '#10b981' }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey={dataKey} 
-                      stroke="#10b981" 
-                      strokeWidth={2}
-                      dot={{ r: 3, fill: '#020617', stroke: '#10b981', strokeWidth: 2 }}
-                      activeDot={{ r: 5, fill: '#10b981' }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+            <div className="p-4 flex flex-col h-full space-y-6">
+              {scenarioContext.chartConfigs && scenarioContext.chartConfigs.length > 0 ? (
+                <>
+                  <p className="text-[10px] uppercase font-mono tracking-widest text-slate-500 mb-2">Analyzing active chart protocols.</p>
+                  {scenarioContext.chartConfigs.map(chart => (
+                    <div key={chart.id} className="flex flex-col mb-4 bg-[#0a111a]/50 p-3 border border-slate-800">
+                      <div className="text-[10px] font-mono font-bold text-emerald-500 mb-1 tracking-widest uppercase">{chart.title}</div>
+                      <div className="text-[9px] text-slate-400 mb-3 font-mono leading-relaxed">{chart.measureDescription}</div>
+                      
+                      <div className="h-48 w-full bg-[#020617]/50 backdrop-blur-sm border border-slate-900 relative">
+                        <ResponsiveContainer width="100%" height="100%">
+                           {chart.type === 'line' ? (
+                              <LineChart data={chart.data.filter(d => (d.stage as number) <= stage)} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                                <XAxis dataKey="stage" stroke="#475569" tick={{fontSize: 9, fill: '#64748b', fontFamily: 'monospace'}} />
+                                <YAxis stroke="#475569" tick={{fontSize: 9, fill: '#64748b', fontFamily: 'monospace'}} />
+                                <Tooltip contentStyle={{ backgroundColor: '#020617', borderColor: '#1e293b', color: '#10b981', fontFamily: 'monospace', fontSize: '10px' }} />
+                                <Line type="monotone" dataKey="delayIndex" stroke="#10b981" strokeWidth={2} dot={{ r: 3, fill: '#020617', stroke: '#10b981', strokeWidth: 2 }} />
+                              </LineChart>
+                           ) : chart.type === 'radar' ? (
+                              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chart.data}>
+                                <PolarGrid stroke="#1e293b" />
+                                <PolarAngleAxis dataKey="metric" tick={{fontSize: 8, fill: '#64748b', fontFamily: 'monospace'}} />
+                                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} stroke="#1e293b" />
+                                <Radar name="Santo Andre" dataKey="SantoAndre" stroke="#10b981" fill="#10b981" fillOpacity={0.4} />
+                                <Radar name="Sao Bernardo" dataKey="SaoBernardo" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} />
+                                <Tooltip contentStyle={{ backgroundColor: '#020617', borderColor: '#1e293b', color: '#10b981', fontFamily: 'monospace', fontSize: '10px' }} />
+                              </RadarChart>
+                           ) : chart.type === 'stacked_bar' ? (
+                              <BarChart data={chart.data.filter(d => (d.stage as number) <= stage)} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                                <XAxis dataKey="stage" stroke="#475569" tick={{fontSize: 9, fill: '#64748b', fontFamily: 'monospace'}} />
+                                <YAxis stroke="#475569" tick={{fontSize: 9, fill: '#64748b', fontFamily: 'monospace'}} />
+                                <Tooltip contentStyle={{ backgroundColor: '#020617', borderColor: '#1e293b', color: '#10b981', fontFamily: 'monospace', fontSize: '10px' }} />
+                                <Bar dataKey="pumpEnergyKW" fill="#eab308" stackId="a" />
+                                <Bar dataKey="soilMoistureIndex" fill="#0ea5e9" stackId="a" />
+                              </BarChart>
+                           ) : (
+                               <div className="w-full h-full flex flex-col items-center justify-center text-[10px] text-slate-500 font-mono">Chart format locked.</div>
+                           )}
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <>
+                  <p className="text-[10px] uppercase font-mono tracking-widest text-slate-500 mb-6">Analyzing {activeSystem} anomaly patterns over time.</p>
+                  <div className="h-64 flex-shrink-0 bg-[#020617]/50 backdrop-blur-sm p-2 border border-slate-800 relative">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: -20 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis dataKey="stage" stroke="#475569" tick={{fontSize: 10, fill: '#64748b', fontFamily: 'monospace'}} />
+                        <YAxis stroke="#475569" tick={{fontSize: 10, fill: '#64748b', fontFamily: 'monospace'}} />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#020617', borderColor: '#1e293b', color: '#10b981', fontFamily: 'monospace', fontSize: '10px', textTransform: 'uppercase' }} 
+                          itemStyle={{ color: '#10b981' }}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey={dataKey} 
+                          stroke="#10b981" 
+                          strokeWidth={2}
+                          dot={{ r: 3, fill: '#020617', stroke: '#10b981', strokeWidth: 2 }}
+                          activeDot={{ r: 5, fill: '#10b981' }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -207,7 +258,7 @@ export const RightPanel = () => {
 
           {/* Dossier Panel */}
           {activePanel === 'dossier' && (
-            <div className="p-4">
+            <div className="p-4 space-y-4">
                <div className="bg-[#020617] p-4 border border-yellow-900 shadow-[inset_0_0_20px_rgba(234,179,8,0.05)] relative">
                  <div className="absolute top-0 left-0 w-full h-1 bg-yellow-600"></div>
                  <div className="text-slate-500 mb-4 border-b border-slate-800 pb-2 font-mono text-[9px] uppercase tracking-widest space-y-1">
@@ -219,6 +270,21 @@ export const RightPanel = () => {
                    &quot;{scenarioContext.dossier}&quot;
                  </p>
                </div>
+
+               {/* Add intercepted internal emails to dossier */}
+               {scenarioContext.hotspots
+                 .filter(h => h.type === 'internal_email' && h.stageAppeared <= stage)
+                 .map(email => (
+                   <div key={email.id} className="bg-[#020617] p-3 border border-slate-700 relative shadow-sm">
+                     <div className="absolute top-0 left-0 w-1 h-full bg-slate-500"></div>
+                     <div className="text-slate-500 border-b border-slate-800 pb-2 mb-2 font-mono text-[9px] tracking-widest uppercase ml-2 flex justify-between">
+                       <span>:: COMMS INTERCEPT</span>
+                       <span>STAGE {email.stageAppeared}</span>
+                     </div>
+                     <div className="text-[10px] font-bold text-slate-300 mb-1 ml-2 tracking-widest uppercase">{email.title}</div>
+                     <div className="text-[10px] text-slate-400 font-mono leading-relaxed ml-2">{email.description}</div>
+                   </div>
+                 ))}
             </div>
           )}
 
