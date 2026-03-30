@@ -22,7 +22,7 @@ export const TopBar = () => {
 
   return (
     <div className="absolute top-0 left-0 right-0 z-50 pointer-events-none p-2 sm:p-4">
-      <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-3 bg-[#050b14]/90 backdrop-blur-md bg-scanlines border border-slate-600/50 text-white pointer-events-auto shadow-[0_0_30px_rgba(0,0,0,0.8)] relative before:absolute before:inset-0 before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/10">
+      <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-3 bg-[#050b14]/70 backdrop-blur-md bg-scanlines border border-slate-500/50 text-white pointer-events-auto shadow-[0_0_40px_rgba(52,211,153,0.15)] relative before:absolute before:inset-0 before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/10">
         
         {/* Left: Branding */}
         <div className="flex items-center space-x-4">
