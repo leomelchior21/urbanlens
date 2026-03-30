@@ -78,11 +78,11 @@ export const UrbanMap = () => {
                     stage >= 3 ? 'w-6 h-6 duration-1000 opacity-60' :
                       'w-4 h-4 duration-[1500ms] opacity-50'
                   }
-                  ${hotspot.system === 'Temperature' ? 'bg-orange-500/50' :
-                    hotspot.system === 'Air' ? 'bg-yellow-400/50' :
+                  ${hotspot.system === 'Temperature' ? 'bg-red-500/50' :
+                    hotspot.system === 'Air' ? 'bg-purple-500/50' :
                       hotspot.system === 'Water' ? 'bg-cyan-500/50' :
-                        hotspot.system === 'Energy' ? 'bg-purple-500/50' :
-                          hotspot.system === 'Mobility' ? 'bg-emerald-400/50' :
+                        hotspot.system === 'Energy' ? 'bg-yellow-500/50' :
+                          hotspot.system === 'Mobility' ? 'bg-orange-500/50' :
                             hotspot.system === 'Waste' ? 'bg-stone-400/50' :
                               'bg-green-500/50'
                   }`}
@@ -94,11 +94,11 @@ export const UrbanMap = () => {
                     stage >= 3 ? 'w-1.5 h-1.5 opacity-90' :
                       'w-1 h-1 opacity-80'
                   }
-                  ${hotspot.system === 'Temperature' ? 'bg-orange-400 shadow-[0_0_8px_#f97316]' :
-                    hotspot.system === 'Air' ? 'bg-yellow-400 shadow-[0_0_8px_#facc15]' :
+                  ${hotspot.system === 'Temperature' ? 'bg-red-500 shadow-[0_0_8px_#ef4444]' :
+                    hotspot.system === 'Air' ? 'bg-purple-500 shadow-[0_0_8px_#a855f7]' :
                       hotspot.system === 'Water' ? 'bg-cyan-400 shadow-[0_0_8px_#06b6d4]' :
-                        hotspot.system === 'Energy' ? 'bg-purple-400 shadow-[0_0_8px_#a855f7]' :
-                          hotspot.system === 'Mobility' ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' :
+                        hotspot.system === 'Energy' ? 'bg-yellow-500 shadow-[0_0_8px_#eab308]' :
+                          hotspot.system === 'Mobility' ? 'bg-orange-500 shadow-[0_0_8px_#f97316]' :
                             hotspot.system === 'Waste' ? 'bg-stone-300 shadow-[0_0_8px_#a8a29e]' :
                               'bg-green-400 shadow-[0_0_8px_#22c55e]'
                   } ${selectedHotspot?.id === hotspot.id ? 'scale-[2.5] ring-2 ring-white/80 ring-offset-2 ring-offset-[#050b14]' : 'scale-100 hover:scale-[3]'}
@@ -108,11 +108,12 @@ export const UrbanMap = () => {
               {/* Cyberpunk Hook Popup */}
               {selectedHotspot?.id === hotspot.id && (() => {
                 const sysColors = {
-                  Temperature: { bg: 'bg-orange-400', border: 'border-orange-500/50', borderL: 'border-l-orange-400', text: 'text-orange-400', shadow: 'shadow-[0_0_20px_rgba(249,115,22,0.3)]' },
-                  Air: { bg: 'bg-yellow-400', border: 'border-yellow-500/50', borderL: 'border-l-yellow-400', text: 'text-yellow-400', shadow: 'shadow-[0_0_20px_rgba(250,204,21,0.3)]' },
+                  Temperature: { bg: 'bg-red-500', border: 'border-red-500/50', borderL: 'border-l-red-500', text: 'text-red-500', shadow: 'shadow-[0_0_20px_rgba(239,68,68,0.3)]' },
+                  Air: { bg: 'bg-purple-500', border: 'border-purple-500/50', borderL: 'border-l-purple-500', text: 'text-purple-500', shadow: 'shadow-[0_0_20px_rgba(168,85,247,0.3)]' },
                   Water: { bg: 'bg-cyan-400', border: 'border-cyan-500/50', borderL: 'border-l-cyan-400', text: 'text-cyan-400', shadow: 'shadow-[0_0_20px_rgba(6,182,212,0.3)]' },
-                  Energy: { bg: 'bg-purple-400', border: 'border-purple-500/50', borderL: 'border-l-purple-400', text: 'text-purple-400', shadow: 'shadow-[0_0_20px_rgba(168,85,247,0.3)]' },
-                  Mobility: { bg: 'bg-emerald-400', border: 'border-emerald-500/50', borderL: 'border-l-emerald-400', text: 'text-emerald-400', shadow: 'shadow-[0_0_20px_rgba(52,211,153,0.3)]' },
+                  Energy: { bg: 'bg-yellow-500', border: 'border-yellow-500/50', borderL: 'border-l-yellow-500', text: 'text-yellow-500', shadow: 'shadow-[0_0_20px_rgba(234,179,8,0.3)]' },
+                  Mobility: { bg: 'bg-orange-500', border: 'border-orange-500/50', borderL: 'border-l-orange-500', text: 'text-orange-500', shadow: 'shadow-[0_0_20px_rgba(249,115,22,0.3)]' },
+
                   Waste: { bg: 'bg-stone-400', border: 'border-stone-500/50', borderL: 'border-l-stone-400', text: 'text-stone-400', shadow: 'shadow-[0_0_20px_rgba(168,162,158,0.3)]' },
                   Vegetation: { bg: 'bg-green-400', border: 'border-green-500/50', borderL: 'border-l-green-400', text: 'text-green-400', shadow: 'shadow-[0_0_20px_rgba(74,222,128,0.3)]' }
                 };
@@ -124,7 +125,7 @@ export const UrbanMap = () => {
                     <div className={`absolute -bottom-2 -left-2 w-8 h-[1px] ${c.bg} origin-bottom-left -rotate-45 opacity-80`} />
 
                     {/* Data Box */}
-                    <div className={`ml-4 bg-[#050b14] bg-scanlines border border-slate-800 border-l-2 ${c.borderL} p-3 ${c.shadow} translate-y-2 relative before:absolute before:inset-0 before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/5`}>
+                    <div className={`ml-4 bg-[#050b14]/70 backdrop-blur-md bg-scanlines border border-slate-800 border-l-2 ${c.borderL} p-3 ${c.shadow} translate-y-2 relative before:absolute before:inset-0 before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/5`}>
                       <div className={`text-[10px] ${c.text} font-mono font-bold mb-1 tracking-[0.2em] uppercase flex items-center justify-between border-b border-slate-800 pb-1`}>
                         <span>[{hotspot.type === 'false_lead' ? 'UNVERIFIED' : hotspot.type === 'hint' ? 'ADVISORY' : hotspot.type} INTEL]</span>
                         <span className="text-slate-600 font-mono text-[8px] pl-4">{hotspot.lat.toFixed(4)}, {hotspot.lng.toFixed(4)}</span>

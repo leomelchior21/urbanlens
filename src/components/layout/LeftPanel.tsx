@@ -18,11 +18,11 @@ function cn(...inputs: ClassValue[]) {
 }
 
 const SYSTEMS: { type: SystemType; icon: React.ReactNode; label: string; color: string }[] = [
-  { type: 'Temperature', icon: <ThermometerSun className="w-5 h-5" />, label: 'Thermal', color: 'text-orange-500' },
-  { type: 'Air', icon: <Wind className="w-5 h-5" />, label: 'Atmosphere', color: 'text-yellow-400' },
+  { type: 'Temperature', icon: <ThermometerSun className="w-5 h-5" />, label: 'Thermal', color: 'text-red-500' },
+  { type: 'Air', icon: <Wind className="w-5 h-5" />, label: 'Atmosphere', color: 'text-purple-500' },
   { type: 'Water', icon: <CloudRain className="w-5 h-5" />, label: 'Hydrology', color: 'text-cyan-500' },
-  { type: 'Energy', icon: <Zap className="w-5 h-5" />, label: 'Power Grid', color: 'text-purple-500' },
-  { type: 'Mobility', icon: <Car className="w-5 h-5" />, label: 'Transit', color: 'text-emerald-400' },
+  { type: 'Energy', icon: <Zap className="w-5 h-5" />, label: 'Power Grid', color: 'text-yellow-500' },
+  { type: 'Mobility', icon: <Car className="w-5 h-5" />, label: 'Transit', color: 'text-orange-500' },
   { type: 'Waste', icon: <Trash2 className="w-5 h-5" />, label: 'Sanitation', color: 'text-stone-400' },
   { type: 'Vegetation', icon: <TreePine className="w-5 h-5" />, label: 'Ecology', color: 'text-green-500' },
 ];
@@ -32,7 +32,7 @@ export const LeftPanel = () => {
 
   return (
     <div className="absolute top-[88px] bottom-6 left-2 sm:left-6 w-14 sm:w-56 z-40 flex flex-col pointer-events-none">
-      <div className="bg-[#050b14] border-2 border-slate-800 rounded-sm overflow-hidden shadow-2xl flex-1 flex flex-col p-2 sm:p-4 pointer-events-auto bg-scanlines relative before:absolute before:inset-0 before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/5">
+      <div className="bg-[#050b14]/70 backdrop-blur-md border-2 border-slate-800 rounded-sm overflow-hidden shadow-2xl flex-1 flex flex-col p-2 sm:p-4 pointer-events-auto bg-scanlines relative before:absolute before:inset-0 before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/5">
         
         {/* Terminal Header */}
         <div className="mb-4 hidden sm:flex flex-col border-b border-slate-800 pb-3">
@@ -60,8 +60,8 @@ export const LeftPanel = () => {
                 className={cn(
                   "w-full flex min-h-[40px] items-center justify-center sm:justify-start px-2 sm:px-3 transition-none border font-mono tracking-widest uppercase text-[10px] sm:text-xs",
                   isActive 
-                    ? `${activeBorder} ${activeBg} ${colorClass} shadow-[inset_0_0_15px_rgba(255,255,255,0.05)]` 
-                    : `bg-[#0a111a] border-slate-800 text-slate-500 hover:text-slate-300 ${hoverBorder}`
+                    ? `${activeBorder} ${activeBg} ${colorClass} shadow-[inset_0_0_15px_rgba(255,255,255,0.05)] backdrop-blur-sm` 
+                    : `bg-[#0a111a]/60 backdrop-blur-sm border-slate-800 text-slate-500 hover:text-slate-300 ${hoverBorder}`
                 )}
                 title={sys.label}
               >

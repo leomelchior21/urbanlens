@@ -72,7 +72,7 @@ export const RightPanel = () => {
       >
         <Icon className="w-5 h-5" />
         {/* Tooltip */}
-        <span className="absolute right-full mr-2 top-1/2 -translate-y-1/2 bg-[#050b14] border border-slate-800 text-emerald-500 font-mono text-[10px] tracking-widest uppercase py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+        <span className="absolute right-full mr-2 top-1/2 -translate-y-1/2 bg-[#050b14]/80 backdrop-blur-md border border-slate-800 text-emerald-500 font-mono text-[10px] tracking-widest uppercase py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
           {label}
         </span>
         {/* Badge for Evidence */}
@@ -90,12 +90,12 @@ export const RightPanel = () => {
       
       {/* Expanding Panel */}
       <div 
-        className={`transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden mr-2 sm:mr-4 bg-[#050b14] bg-scanlines border-y border-l border-slate-800 shadow-2xl pointer-events-auto flex flex-col relative before:absolute before:inset-0 before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/5
+        className={`transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden mr-2 sm:mr-4 bg-[#050b14]/70 backdrop-blur-md bg-scanlines border-y border-l border-slate-800 shadow-2xl pointer-events-auto flex flex-col relative before:absolute before:inset-0 before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/5
           ${activePanel ? 'w-80 sm:w-80 opacity-100 border-r border-r-slate-800 translate-x-0' : 'w-0 opacity-0 translate-x-10 border-r-transparent'}
         `}
       >
         {activePanel && (
-          <div className="flex items-center justify-between p-3 border-b border-slate-800 bg-[#0a111a]">
+          <div className="flex items-center justify-between p-3 border-b border-slate-800 bg-[#0a111a]/50">
             <h2 className="text-xs font-mono font-bold tracking-[0.2em] text-emerald-500 uppercase flex items-center gap-2">
               <span className="w-1.5 h-4 bg-emerald-500 block"></span>
               {activePanel === 'metrics' && 'ANALYTICS'}
@@ -115,7 +115,7 @@ export const RightPanel = () => {
           {activePanel === 'metrics' && (
             <div className="p-4 flex flex-col h-full">
               <p className="text-[10px] uppercase font-mono tracking-widest text-slate-500 mb-6">Analyzing {activeSystem} anomaly patterns over time.</p>
-              <div className="h-64 flex-shrink-0 bg-[#020617] p-2 border border-slate-800 relative">
+              <div className="h-64 flex-shrink-0 bg-[#020617]/50 backdrop-blur-sm p-2 border border-slate-800 relative">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: -20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -152,8 +152,8 @@ export const RightPanel = () => {
                     onClick={() => setSelectedHotspot(h)}
                     className={`p-3 border text-sm transition-colors cursor-pointer ${
                       selectedHotspot?.id === h.id 
-                        ? 'bg-emerald-900/20 border-emerald-500 shadow-[inset_0_0_15px_rgba(52,211,153,0.1)]' 
-                        : 'bg-[#0a111a] border-slate-800 hover:border-emerald-900/50'
+                        ? 'bg-emerald-900/40 backdrop-blur-md border-emerald-500 shadow-[inset_0_0_15px_rgba(52,211,153,0.1)]' 
+                        : 'bg-[#0a111a]/60 backdrop-blur-sm border-slate-800 hover:border-emerald-900/50'
                     }`}
                   >
                     <div className="flex items-start space-x-3 text-slate-300">
@@ -226,7 +226,7 @@ export const RightPanel = () => {
       </div>
 
       {/* Static Dock */}
-      <div className="bg-[#050b14] bg-scanlines border border-slate-800 flex flex-col pointer-events-auto shadow-2xl h-fit">
+      <div className="bg-[#050b14]/70 backdrop-blur-md bg-scanlines border border-slate-800 flex flex-col pointer-events-auto shadow-2xl h-fit">
         {getDockButton('metrics', Activity, 'Analytics')}
         {getDockButton('feed', Radio, 'Intercepts')}
         {getDockButton('evidence', Paperclip, 'Evidence Board')}

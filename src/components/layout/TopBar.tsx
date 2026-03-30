@@ -22,7 +22,7 @@ export const TopBar = () => {
 
   return (
     <div className="absolute top-0 left-0 right-0 z-50 pointer-events-none p-2 sm:p-4">
-      <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-3 bg-[#050b14] bg-scanlines border-2 border-slate-800 text-white pointer-events-auto shadow-2xl relative before:absolute before:inset-0 before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/5">
+      <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-3 bg-[#050b14]/70 backdrop-blur-md bg-scanlines border-2 border-slate-800 text-white pointer-events-auto shadow-2xl relative before:absolute before:inset-0 before:pointer-events-none before:ring-1 before:ring-inset before:ring-white/5">
         
         {/* Left: Branding */}
         <div className="flex items-center space-x-4">
@@ -71,7 +71,7 @@ export const TopBar = () => {
             </div>
             <button 
               onClick={toggleTimer}
-              className="p-3 bg-[#0a111a] hover:bg-slate-800 transition-colors border border-slate-700 text-slate-400 group"
+              className="p-3 bg-[#0a111a]/70 backdrop-blur-sm hover:bg-slate-800/80 transition-colors border border-slate-700 text-slate-400 group"
               title="Toggle Simulation Timer"
             >
               <Activity className={`w-4 h-4 ${isRunning ? 'text-emerald-500 group-hover:text-emerald-400' : 'text-slate-600'}`} />
