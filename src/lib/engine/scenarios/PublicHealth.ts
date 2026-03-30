@@ -1,0 +1,98 @@
+import { ScenarioContext, Hotspot, ChartConfig } from '@/store/useCrisisStore';
+
+// Base anchors for Heliópolis area
+const baseAnchors = [
+  { lat: -23.607, lng: -46.606 },
+  { lat: -23.612, lng: -46.601 }
+];
+function offset(idx: number, range: number) {
+  const a = baseAnchors[idx % baseAnchors.length];
+  return {
+    lat: a.lat + (Math.random() - 0.5) * range,
+    lng: a.lng + (Math.random() - 0.5) * range
+  };
+}
+
+const hotspots: Hotspot[] = [
+  // Stage 1 – Symptoms
+  {
+    id: 'ph-1-1', ...offset(0, 0.04),
+    type: 'news', investigativeRole: 'symptom', stageAppeared: 1, system: 'Health',
+    title: 'FEVER CLUSTER',
+    description: 'Health: sudden rise in fever cases reported in Heliópolis and Ipiranga.'
+  },
+  // Stage 2 – Distractors / False Leads
+  {
+    id: 'ph-2-1', ...offset(1, 0.05),
+    type: 'false_lead', investigativeRole: 'false_lead', stageAppeared: 2, system: 'Energy',
+    title: 'POWER OUTAGE RUMOR',
+    description: 'Rumor spreads that a transformer failure caused the health surge.'
+  },
+  // Stage 3 – Secondary Clues
+  {
+    id: 'ph-3-1', ...offset(0, 0.04),
+    type: 'alert', investigativeRole: 'secondary_clue', stageAppeared: 3, system: 'Waste',
+    title: 'STAGNANT WATER',
+    description: 'Environmental alert: open sewers and stagnant water containers found in alleys.'
+  },
+  // Stage 4 – Root Clue
+  {
+    id: 'ph-4-1', ...offset(1, 0.02),
+    type: 'alert', investigativeRole: 'root_clue', stageAppeared: 4, system: 'Waste',
+    title: 'OPEN SEWER',
+    description: 'Investigation reveals open sewer network leaking into neighborhoods, breeding mosquitoes.'
+  },
+  // Stage 5 – Convergence
+  {
+    id: 'ph-5-1', ...offset(0, 0.015),
+    type: 'news', investigativeRole: 'root_clue', stageAppeared: 5, system: 'Health',
+    title: 'DENGUE OUTBREAK DECLARED',
+    description: 'Official health emergency: dengue cases exceed 800, hospitals overwhelmed.'
+  }
+];
+
+const charts: ChartConfig[] = [
+  {
+    id: 'chart-ph-1',
+    title: 'Dengue Cases Over Stages',
+    type: 'line',
+    measureDescription: 'Cumulative reported dengue cases per investigation stage.',
+    hiddenRole: 'Misleading Metric: Shows a steady rise suggesting natural spread, while the root cause is the open sewer.',
+    data: [
+      { stage: 1, cases: 120 },
+      { stage: 2, cases: 250 },
+      { stage: 3, cases: 420 },
+      { stage: 4, cases: 620 },
+      { stage: 5, cases: 820 }
+    ]
+  },
+  {
+    id: 'chart-ph-2',
+    title: 'Water vs Waste Radar',
+    type: 'radar',
+    measureDescription: 'Comparison of water contamination vs waste accumulation.',
+    hiddenRole: 'Root Clue: Highlights waste as the dominant factor driving disease.',
+    data: [
+      { metric: 'Contamination (ppm)', Water: 15, Waste: 85 },
+      { metric: 'Mosquito Index', Water: 30, Waste: 90 }
+    ]
+  }
+];
+
+export const publicHealthContext: Omit<ScenarioContext, 'id'> = {
+  title: 'Public Health Emergency in Heliópolis',
+  code: 'CRISIS-10',
+  rootCauseSystem: 'Waste',
+  description: 'Hidden cause: open sewer + extreme heat = dengue outbreak',
+  dossier: "Mayor's Advisor: 'Boss, the number of crowded stretchers at the Ipiranga UBS broke a record today. The perceived temperature in Heliópolis is boiling and the alleys look like stagnant streams. I would blame it on the harsh summer and sudden overpopulation.'",
+  stageTexts: {
+    1: 'Health: clustered fever cases in Heliópolis and Ipiranga',
+    2: 'Water: sewage detected in stream; waste: accumulation of stagnant water containers',
+    3: 'Temperature: intense heat island (+5°C) — vector accelerator',
+    4: 'Air: emergency fogging detected (fumacê)',
+    5: '800 confirmed cases; Heliópolis UBS in collapse'
+  },
+  hotspots,
+  chartData: [],
+  chartConfigs: charts
+};

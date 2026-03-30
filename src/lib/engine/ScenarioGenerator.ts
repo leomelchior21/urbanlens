@@ -1,5 +1,14 @@
 import { ScenarioContext, SystemType, Hotspot } from "@/store/useCrisisStore";
 import { waterCollapseContext } from "./scenarios/WaterCollapse";
+import { heatWaveContext } from "./scenarios/HeatWave";
+import { tieteFloodContext } from "./scenarios/TieteFlood";
+import { cascadingBlackoutContext } from "./scenarios/CascadingBlackout";
+import { wasteCollapseContext } from "./scenarios/WasteCollapse";
+import { landslideContext } from "./scenarios/Landslide";
+import { airCrisisContext } from "./scenarios/AirCrisis";
+import { mobilityCollapseContext } from "./scenarios/MobilityCollapse";
+import { waterShortageContext } from "./scenarios/WaterShortage";
+import { publicHealthContext } from "./scenarios/PublicHealth";
 
 export interface ScenarioData extends Partial<ScenarioContext> {
   anchors: { lat: number, lng: number }[];
@@ -142,21 +151,7 @@ export const MOCK_SCENARIOS: ScenarioData[] = [
     },
     anchors: [ { lat: -23.268, lng: -46.561 }, { lat: -23.317, lng: -46.587 } ]
   },
-  {
-    title: "Public Health Emergency in Heliopolis",
-    code: "CRISIS-10",
-    rootCauseSystem: "Waste",
-    description: "Hidden cause: open sewer + extreme heat = dengue outbreak",
-    dossier: "Mayor's Advisor: 'Boss, the number of crowded stretchers at the Ipiranga UBS broke a record today. The perceived temperature in Heliópolis is boiling and the alleys look like stagnant streams. I would blame it on the harsh summer and sudden overpopulation.'",
-    stageTexts: {
-      1: "Health: clustered fever cases in Heliópolis and Ipiranga",
-      2: "Water: sewage detected in stream; waste: accumulation of stagnant water containers",
-      3: "Temperature: intense heat island (+5°C) — vector accelerator",
-      4: "Air: emergency fogging detected (fumacê)",
-      5: "800 confirmed cases; Heliópolis UBS in collapse"
-    },
-    anchors: [ { lat: -23.607, lng: -46.606 }, { lat: -23.612, lng: -46.601 } ]
-  }
+  // Public Health Emergency scenario moved to its own file: src/lib/engine/scenarios/PublicHealth.ts
 ];
 
 export function randomOffset(base: number, range: number) {
@@ -179,7 +174,18 @@ export function generateChartData() {
 
 export function generateInstantBaseScenario(): ScenarioContext {
   // Try to use our explicitly authored scenarios first
-  const authoredScenarios = [waterCollapseContext];
+  const authoredScenarios = [
+    waterCollapseContext,
+    heatWaveContext,
+    tieteFloodContext,
+    cascadingBlackoutContext,
+    wasteCollapseContext,
+    landslideContext,
+    airCrisisContext,
+    mobilityCollapseContext,
+    waterShortageContext,
+    publicHealthContext
+  ];
   const selectedAuthored = authoredScenarios[Math.floor(Math.random() * authoredScenarios.length)];
   
   if (selectedAuthored) {
