@@ -1,4 +1,5 @@
 import { ScenarioContext, Hotspot, ChartConfig } from '@/store/useCrisisStore';
+import { addLayerDistractors } from './scenarioUtils';
 
 // Base anchors for Guarulhos area
 const baseAnchors = [
@@ -86,14 +87,14 @@ const charts: ChartConfig[] = [
     id: 'chart-wc-1',
     title: 'Fire Intensity Over Time',
     type: 'line',
-    measureDescription: 'Thermal sensor readings from the landfill perimeter.',
-    hiddenRole: 'Misleading Metric: Shows rising temperature suggesting a natural fire, while the root cause is illegal waste accumulation.',
+    measureDescription: 'Thermal sensor readings from the landfill perimeter versus nominal containment capacity.',
+    hiddenRole: 'Misleading Metric: Shows rising temperature suggesting a natural fire, while the root cause is illegal waste accumulation and failed containment.',
     data: [
-      { stage: 1, temp: 45 },
-      { stage: 2, temp: 58 },
-      { stage: 3, temp: 70 },
-      { stage: 4, temp: 85 },
-      { stage: 5, temp: 0 } // fire extinguished after explosion
+      { stage: 1, temp: 45, containmentLimit: 60 },
+      { stage: 2, temp: 58, containmentLimit: 60 },
+      { stage: 3, temp: 70, containmentLimit: 58 },
+      { stage: 4, temp: 85, containmentLimit: 55 },
+      { stage: 5, temp: 0, containmentLimit: 10 } // fire extinguished after explosion
     ]
   },
   {
@@ -137,7 +138,7 @@ export const wasteCollapseContext: Omit<ScenarioContext, 'id'> = {
     4: 'Health: hospitals overwhelmed with respiratory cases; supply shortages.',
     5: 'Explosion: gas buildup triggers a massive blast, crippling transport.'
   },
-  hotspots,
+  hotspots: addLayerDistractors(hotspots, 'CRISIS-05', baseAnchors),
   chartData: [],
   chartConfigs: charts
 };

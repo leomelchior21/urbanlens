@@ -1,4 +1,5 @@
 import { ScenarioContext, Hotspot, ChartConfig } from "@/store/useCrisisStore";
+import { addLayerDistractors } from "./scenarioUtils";
 
 /**
  * CRISIS-04: Cascading Blackout in Central Region
@@ -166,28 +167,28 @@ const charts: ChartConfig[] = [
     id: "chart-blackout-1",
     title: "Traffic Node Connectivity",
     type: "line",
-    measureDescription: "Percentage of active traffic lights and mobility sensors.",
-    hiddenRole: "The Misleading Metric: By plummeting early, it makes the player think Mobility is the root failure rather than a symptom.",
+    measureDescription: "Percentage of active traffic lights and mobility sensors against the normal operating baseline.",
+    hiddenRole: "The Misleading Metric: By plummeting early, it makes the player think Mobility is the root failure rather than a symptom of grid collapse.",
     data: [
-      { stage: 1, activeNodes: 95 },
-      { stage: 2, activeNodes: 45 }, // Plummets
-      { stage: 3, activeNodes: 20 },
-      { stage: 4, activeNodes: 15 },
-      { stage: 5, activeNodes: 0 }
+      { stage: 1, activeNodes: 95, baselineNodes: 96 },
+      { stage: 2, activeNodes: 45, baselineNodes: 96 }, // Plummets
+      { stage: 3, activeNodes: 20, baselineNodes: 95 },
+      { stage: 4, activeNodes: 15, baselineNodes: 95 },
+      { stage: 5, activeNodes: 0, baselineNodes: 94 }
     ]
   },
   {
     id: "chart-blackout-2",
     title: "Infrastructure Outage Spread",
     type: "radar",
-    measureDescription: "Failure rates across different urban sectors.",
+    measureDescription: "Failure rates across different urban sectors versus stable operating levels and emergency tolerance.",
     hiddenRole: "Zone Comparison: Proves the blackout is hitting Water, Health, and Mobility simultaneously, confirming the root is energy.",
     data: [
-      { metric: "Mobility", FailureRate: 100 },
-      { metric: "Water Pumps", FailureRate: 85 },
-      { metric: "Hospitals", FailureRate: 60 },
-      { metric: "Waste Sorting", FailureRate: 90 },
-      { metric: "Comms", FailureRate: 40 }
+      { metric: "Mobility", FailureRate: 100, StableOperation: 12, EmergencyTolerance: 45 },
+      { metric: "Water Pumps", FailureRate: 85, StableOperation: 10, EmergencyTolerance: 40 },
+      { metric: "Hospitals", FailureRate: 60, StableOperation: 8, EmergencyTolerance: 25 },
+      { metric: "Waste Sorting", FailureRate: 90, StableOperation: 15, EmergencyTolerance: 35 },
+      { metric: "Comms", FailureRate: 40, StableOperation: 18, EmergencyTolerance: 30 }
     ]
   },
   {
@@ -219,7 +220,7 @@ export const cascadingBlackoutContext: Omit<ScenarioContext, 'id'> = {
     4: "Discovery: An illegal, massive industrial load is secretly draining the grid, overheating the Bandeirantes hub.",
     5: "Collapse: Hub forces an automated shutdown to save itself, throwing 200k homes into darkness."
   },
-  hotspots,
+  hotspots: addLayerDistractors(hotspots, "CRISIS-04", baseAnchors),
   chartData: [],
   chartConfigs: charts
 };

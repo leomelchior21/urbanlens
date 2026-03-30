@@ -1,4 +1,5 @@
 import { ScenarioContext, Hotspot, ChartConfig } from '@/store/useCrisisStore';
+import { addLayerDistractors } from './scenarioUtils';
 
 // Base anchors for Paulista axis area
 const baseAnchors = [
@@ -56,14 +57,14 @@ const charts: ChartConfig[] = [
     id: 'chart-mc-1',
     title: 'Traffic Flow Line',
     type: 'line',
-    measureDescription: 'Average vehicle speed per stage.',
-    hiddenRole: 'Misleading Metric: Shows speed drop suggesting generic congestion, not the hazardous spill.',
+    measureDescription: 'Average vehicle speed per stage against the corridor baseline.',
+    hiddenRole: 'Misleading Metric: Shows speed drop suggesting generic congestion, not the hazardous spill driving block evacuations.',
     data: [
-      { stage: 1, speed: 8 },
-      { stage: 2, speed: 6 },
-      { stage: 3, speed: 4 },
-      { stage: 4, speed: 2 },
-      { stage: 5, speed: 0 }
+      { stage: 1, speed: 8, cityBaselineSpeed: 18 },
+      { stage: 2, speed: 6, cityBaselineSpeed: 18 },
+      { stage: 3, speed: 4, cityBaselineSpeed: 17 },
+      { stage: 4, speed: 2, cityBaselineSpeed: 17 },
+      { stage: 5, speed: 0, cityBaselineSpeed: 16 }
     ]
   },
   {
@@ -73,8 +74,24 @@ const charts: ChartConfig[] = [
     measureDescription: 'Benzene concentration vs. safe zones.',
     hiddenRole: 'Root Clue: Highlights the hotspot where the spill originated.',
     data: [
-      { metric: 'Benzene ppm', AccidentSite: 95, Neighbor1: 20, Neighbor2: 10 },
-      { metric: 'Air Quality Index', AccidentSite: 180, Neighbor1: 80, Neighbor2: 70 }
+      { metric: 'Benzene ppm', AccidentSite: 95, Paulista: 20, Mooca: 10 },
+      { metric: 'Air Quality Index', AccidentSite: 180, Paulista: 80, Mooca: 70 },
+      { metric: 'Evacuation Radius', AccidentSite: 90, Paulista: 30, Mooca: 20 },
+      { metric: 'Signal Disruption', AccidentSite: 72, Paulista: 35, Mooca: 18 }
+    ]
+  },
+  {
+    id: 'chart-mc-3',
+    title: 'Lane Closures vs Evacuation Blocks',
+    type: 'stacked_bar',
+    measureDescription: 'Closed traffic lanes compared with evacuated city blocks as the hazmat response expands.',
+    hiddenRole: 'Operational Impact: shows the mobility shutdown is being driven by public safety perimeters, not ordinary rush-hour load.',
+    data: [
+      { stage: 1, closedLanes: 1, evacuatedBlocks: 0 },
+      { stage: 2, closedLanes: 2, evacuatedBlocks: 3 },
+      { stage: 3, closedLanes: 3, evacuatedBlocks: 6 },
+      { stage: 4, closedLanes: 5, evacuatedBlocks: 10 },
+      { stage: 5, closedLanes: 7, evacuatedBlocks: 14 }
     ]
   }
 ];
@@ -92,7 +109,7 @@ export const mobilityCollapseContext: Omit<ScenarioContext, 'id'> = {
     4: 'Mobility: tanker overturns, blocking main road.',
     5: 'City: emergency declared, subway paralyzed.'
   },
-  hotspots,
+  hotspots: addLayerDistractors(hotspots, 'CRISIS-08', baseAnchors),
   chartData: [],
   chartConfigs: charts
 };

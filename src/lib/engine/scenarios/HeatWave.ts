@@ -1,4 +1,5 @@
 import { ScenarioContext, Hotspot, ChartConfig } from "@/store/useCrisisStore";
+import { addLayerDistractors } from "./scenarioUtils";
 
 /**
  * CRISIS-02: Heat Wave in East Zone
@@ -218,7 +219,7 @@ export const heatWaveContext: Omit<ScenarioContext, 'id'> = {
     4: "Discovery: Thermal retention directly mapped to neighborhoods with less than 2% tree canopy.",
     5: "Collapse: Trapped heat island burns through 3 substations. Lethal localized climate established."
   },
-  hotspots,
+  hotspots: addLayerDistractors(hotspots, "CRISIS-02", baseAnchors),
   chartData: [],
   chartConfigs: charts
 };

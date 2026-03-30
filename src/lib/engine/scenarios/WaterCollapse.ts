@@ -1,4 +1,5 @@
 import { ScenarioContext, Hotspot, ChartConfig } from "@/store/useCrisisStore";
+import { addLayerDistractors } from "./scenarioUtils";
 
 /**
  * CRISIS-01: Water Collapse in ABC
@@ -221,7 +222,7 @@ export const waterCollapseContext: Omit<ScenarioContext, 'id'> = {
     4: "Discovery: Massive delta between pump thrust and node reception. Groundwater radars confirming flood.",
     5: "Collapse: Avenue base washes away. 4 neighborhoods completely without supply. Aqueduct breach confirmed."
   },
-  hotspots,
+  hotspots: addLayerDistractors(hotspots, "CRISIS-01", baseAnchors),
   chartData: [], // Legacy fallback
   chartConfigs: charts
 };

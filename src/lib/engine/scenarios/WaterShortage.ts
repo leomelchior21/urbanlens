@@ -1,4 +1,5 @@
 import { ScenarioContext, Hotspot, ChartConfig } from '@/store/useCrisisStore';
+import { addLayerDistractors } from './scenarioUtils';
 
 // Base anchors for Cantareira region
 const baseAnchors = [
@@ -56,25 +57,41 @@ const charts: ChartConfig[] = [
     id: 'chart-ws-1',
     title: 'Reservoir Level Line',
     type: 'line',
-    measureDescription: 'Reservoir volume percentage across stages.',
+    measureDescription: 'Reservoir volume percentage across stages against historical average and the critical reserve floor.',
     hiddenRole: 'Misleading Metric: Shows a gradual decline, hinting at natural evaporation, while illegal abstraction is the hidden driver.',
     data: [
-      { stage: 1, level: 30 },
-      { stage: 2, level: 25 },
-      { stage: 3, level: 20 },
-      { stage: 4, level: 15 },
-      { stage: 5, level: 10 }
+      { stage: 1, level: 30, historicalAverage: 48, criticalReserve: 20 },
+      { stage: 2, level: 25, historicalAverage: 47, criticalReserve: 20 },
+      { stage: 3, level: 20, historicalAverage: 46, criticalReserve: 20 },
+      { stage: 4, level: 15, historicalAverage: 45, criticalReserve: 20 },
+      { stage: 5, level: 10, historicalAverage: 44, criticalReserve: 20 }
     ]
   },
   {
     id: 'chart-ws-2',
     title: 'Abstraction Radar',
     type: 'radar',
-    measureDescription: 'Legal vs. illegal water extraction volumes.',
-    hiddenRole: 'Root Clue: Highlights illegal extraction dominating the water balance.',
+    measureDescription: 'Legal vs. illegal extraction compared with the safe sustainable yield.',
+    hiddenRole: 'Root Clue: Highlights illegal extraction dominating the water balance long before drought alone would explain the drop.',
     data: [
-      { metric: 'Extraction (ML)', Legal: 5, Illegal: 45 },
-      { metric: 'Rainfall (mm)', Legal: 10, Illegal: 0 }
+      { metric: 'Extraction (ML)', Legal: 5, Illegal: 45, SafeYield: 18 },
+      { metric: 'Rainfall Support', Legal: 10, Illegal: 0, SafeYield: 22 },
+      { metric: 'Reservoir Dependency', Legal: 35, Illegal: 88, SafeYield: 50 },
+      { metric: 'Enforcement Coverage', Legal: 70, Illegal: 12, SafeYield: 65 }
+    ]
+  },
+  {
+    id: 'chart-ws-3',
+    title: 'Rationing Footprint',
+    type: 'bar',
+    measureDescription: 'Municipalities under restriction compared with tanker deployments.',
+    hiddenRole: 'Operational Impact: shows emergency logistics expanding after the water balance is already broken upstream.',
+    data: [
+      { stage: 1, municipalitiesRestricted: 1, tankerDeployments: 0 },
+      { stage: 2, municipalitiesRestricted: 2, tankerDeployments: 2 },
+      { stage: 3, municipalitiesRestricted: 5, tankerDeployments: 7 },
+      { stage: 4, municipalitiesRestricted: 7, tankerDeployments: 12 },
+      { stage: 5, municipalitiesRestricted: 9, tankerDeployments: 18 }
     ]
   }
 ];
@@ -92,7 +109,7 @@ export const waterShortageContext: Omit<ScenarioContext, 'id'> = {
     4: 'Water: drought confirmed by meteorology.',
     5: 'Emergency: strict rationing, water trucks deployed.'
   },
-  hotspots,
+  hotspots: addLayerDistractors(hotspots, 'CRISIS-09', baseAnchors),
   chartData: [],
   chartConfigs: charts
 };

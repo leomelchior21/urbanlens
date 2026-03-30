@@ -1,4 +1,5 @@
 import { ScenarioContext, Hotspot, ChartConfig } from '@/store/useCrisisStore';
+import { addLayerDistractors } from './scenarioUtils';
 
 // Base anchors for Heliópolis area
 const baseAnchors = [
@@ -56,25 +57,41 @@ const charts: ChartConfig[] = [
     id: 'chart-ph-1',
     title: 'Dengue Cases Over Stages',
     type: 'line',
-    measureDescription: 'Cumulative reported dengue cases per investigation stage.',
-    hiddenRole: 'Misleading Metric: Shows a steady rise suggesting natural spread, while the root cause is the open sewer.',
+    measureDescription: 'Cumulative reported dengue cases per investigation stage against UBS surge capacity.',
+    hiddenRole: 'Misleading Metric: Shows a steady rise suggesting natural spread, while the root cause is the open sewer and stagnant water network.',
     data: [
-      { stage: 1, cases: 120 },
-      { stage: 2, cases: 250 },
-      { stage: 3, cases: 420 },
-      { stage: 4, cases: 620 },
-      { stage: 5, cases: 820 }
+      { stage: 1, cases: 120, ubsCapacity: 180 },
+      { stage: 2, cases: 250, ubsCapacity: 180 },
+      { stage: 3, cases: 420, ubsCapacity: 180 },
+      { stage: 4, cases: 620, ubsCapacity: 180 },
+      { stage: 5, cases: 820, ubsCapacity: 180 }
     ]
   },
   {
     id: 'chart-ph-2',
     title: 'Water vs Waste Radar',
     type: 'radar',
-    measureDescription: 'Comparison of water contamination vs waste accumulation.',
-    hiddenRole: 'Root Clue: Highlights waste as the dominant factor driving disease.',
+    measureDescription: 'Comparison of water contamination, waste accumulation, and heat stress in vector formation.',
+    hiddenRole: 'Root Clue: Highlights waste and standing water as the dominant drivers, with heat accelerating the outbreak.',
     data: [
-      { metric: 'Contamination (ppm)', Water: 15, Waste: 85 },
-      { metric: 'Mosquito Index', Water: 30, Waste: 90 }
+      { metric: 'Contamination (ppm)', Water: 15, Waste: 85, Heat: 42 },
+      { metric: 'Mosquito Index', Water: 30, Waste: 90, Heat: 78 },
+      { metric: 'Standing Water', Water: 42, Waste: 94, Heat: 60 },
+      { metric: 'Drainage Failure', Water: 28, Waste: 88, Heat: 35 }
+    ]
+  },
+  {
+    id: 'chart-ph-3',
+    title: 'Case Load vs Field Response',
+    type: 'stacked_bar',
+    measureDescription: 'Suspected dengue cases compared with admitted patients as the response system strains.',
+    hiddenRole: 'Operational Impact: shows the health network falling behind the outbreak even after field response intensifies.',
+    data: [
+      { stage: 1, suspectedCases: 90, admittedPatients: 25 },
+      { stage: 2, suspectedCases: 180, admittedPatients: 48 },
+      { stage: 3, suspectedCases: 320, admittedPatients: 76 },
+      { stage: 4, suspectedCases: 500, admittedPatients: 110 },
+      { stage: 5, suspectedCases: 760, admittedPatients: 155 }
     ]
   }
 ];
@@ -92,7 +109,7 @@ export const publicHealthContext: Omit<ScenarioContext, 'id'> = {
     4: 'Air: emergency fogging detected (fumacê)',
     5: '800 confirmed cases; Heliópolis UBS in collapse'
   },
-  hotspots,
+  hotspots: addLayerDistractors(hotspots, 'CRISIS-10', baseAnchors),
   chartData: [],
   chartConfigs: charts
 };

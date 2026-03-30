@@ -1,4 +1,5 @@
 import { ScenarioContext, Hotspot, ChartConfig } from '@/store/useCrisisStore';
+import { addLayerDistractors } from './scenarioUtils';
 
 // Base anchors for Parelheiros area
 const baseAnchors = [
@@ -56,14 +57,14 @@ const charts: ChartConfig[] = [
     id: 'chart-ls-1',
     title: 'Rainfall Accumulation',
     type: 'line',
-    measureDescription: 'Cumulative rain over the 5 stages.',
-    hiddenRole: 'Misleading Metric: Shows increasing rain, suggesting weather is the sole cause.',
+    measureDescription: 'Rainfall, soil saturation, and slope movement across the first five escalation stages.',
+    hiddenRole: 'Misleading Metric: Rain rises steadily, but the real giveaway is the non-linear jump in soil saturation and slope movement after deforestation.',
     data: [
-      { stage: 1, rain: 30 },
-      { stage: 2, rain: 55 },
-      { stage: 3, rain: 80 },
-      { stage: 4, rain: 110 },
-      { stage: 5, rain: 130 }
+      { stage: 1, rain: 30, soilSaturation: 45, slopeMovement: 12 },
+      { stage: 2, rain: 55, soilSaturation: 68, slopeMovement: 18 },
+      { stage: 3, rain: 80, soilSaturation: 86, slopeMovement: 35 },
+      { stage: 4, rain: 110, soilSaturation: 96, slopeMovement: 62 },
+      { stage: 5, rain: 130, soilSaturation: 100, slopeMovement: 95 }
     ]
   },
   {
@@ -75,6 +76,20 @@ const charts: ChartConfig[] = [
     data: [
       { metric: 'Forest Cover', Parelheiros: 2, Neighbor1: 45, Neighbor2: 50 },
       { metric: 'Slope Stability', Parelheiros: 15, Neighbor1: 80, Neighbor2: 85 }
+    ]
+  },
+  {
+    id: 'chart-ls-3',
+    title: 'Slope Movement vs Access Loss',
+    type: 'stacked_bar',
+    measureDescription: 'Centimeter slope displacement against blocked rural access routes.',
+    hiddenRole: 'Operational Impact: shows road isolation accelerating only after the terrain begins to shift, not simply when rain arrives.',
+    data: [
+      { stage: 1, slopeShiftCM: 2, blockedRoadSegments: 0 },
+      { stage: 2, slopeShiftCM: 4, blockedRoadSegments: 1 },
+      { stage: 3, slopeShiftCM: 9, blockedRoadSegments: 2 },
+      { stage: 4, slopeShiftCM: 18, blockedRoadSegments: 4 },
+      { stage: 5, slopeShiftCM: 30, blockedRoadSegments: 6 }
     ]
   }
 ];
@@ -92,7 +107,7 @@ export const landslideContext: Omit<ScenarioContext, 'id'> = {
     4: 'Vegetation: satellite confirms deforestation hotspot.',
     5: 'Soil: landslide devastates road, casualties reported.'
   },
-  hotspots,
+  hotspots: addLayerDistractors(hotspots, 'CRISIS-06', baseAnchors),
   chartData: [],
   chartConfigs: charts
 };

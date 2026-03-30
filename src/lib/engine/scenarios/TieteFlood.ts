@@ -1,4 +1,5 @@
 import { ScenarioContext, Hotspot, ChartConfig } from "@/store/useCrisisStore";
+import { addLayerDistractors } from "./scenarioUtils";
 
 /**
  * CRISIS-03: Tiete River Flood
@@ -180,14 +181,14 @@ const charts: ChartConfig[] = [
     id: "chart-flood-2",
     title: "System Stress Radar",
     type: "radar",
-    measureDescription: "Multi-vector anomaly pressure.",
-    hiddenRole: "Zone Comparison: Displays massive waste anomalies spiking right alongside water.",
+    measureDescription: "Multi-vector anomaly pressure versus seasonal baseline and action thresholds.",
+    hiddenRole: "Zone Comparison: Displays waste and water stress rising together well past the flood action threshold.",
     data: [
-      { metric: "Water Level", Impact: 100 },
-      { metric: "Mobility Jam", Impact: 95 },
-      { metric: "Trash Mass", Impact: 90 },
-      { metric: "Energy Risk", Impact: 80 },
-      { metric: "Wind/Air", Impact: 10 }
+      { metric: "Water Level", Impact: 100, SeasonalBaseline: 45, CriticalThreshold: 85 },
+      { metric: "Mobility Jam", Impact: 95, SeasonalBaseline: 30, CriticalThreshold: 70 },
+      { metric: "Trash Mass", Impact: 90, SeasonalBaseline: 15, CriticalThreshold: 60 },
+      { metric: "Energy Risk", Impact: 80, SeasonalBaseline: 20, CriticalThreshold: 65 },
+      { metric: "Health Exposure", Impact: 76, SeasonalBaseline: 10, CriticalThreshold: 55 }
     ]
   },
   {
@@ -219,7 +220,7 @@ export const tieteFloodContext: Omit<ScenarioContext, 'id'> = {
     4: "Discovery: The exit point of the river is jammed. Floodwaters threaten the Osasco Energy hub.",
     5: "Collapse: Dam gates confirmed locked by compacted plastic waste. Massive regional flooding halts logistics."
   },
-  hotspots,
+  hotspots: addLayerDistractors(hotspots, "CRISIS-03", baseAnchors),
   chartData: [],
   chartConfigs: charts
 };
