@@ -1,11 +1,36 @@
 import React, { useEffect, useRef, useState } from 'react';
-import Map, { MapRef, Marker, Source, Layer } from 'react-map-gl/maplibre';
-import maplibregl from 'maplibre-gl';
+import Map, { MapRef, Marker } from 'react-map-gl/maplibre';
+import type { StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useCrisisStore } from '@/store/useCrisisStore';
+import { Circle, Crosshair, Siren, TriangleAlert } from 'lucide-react';
+import { getHotspotImportance, getHotspotImportanceLabel, simplifyHotspotDescription } from '@/lib/engine/hotspotPresentation';
 
-// MapTiler / Carto Dark Matter style URL
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const MAP_STYLE: StyleSpecification = {
+  version: 8,
+  sources: {
+    cartoDark: {
+      type: 'raster',
+      tiles: [
+        'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        'https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+      ],
+      tileSize: 256,
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    },
+  },
+  layers: [
+    {
+      id: 'carto-dark',
+      type: 'raster',
+      source: 'cartoDark',
+      minzoom: 0,
+      maxzoom: 20,
+    },
+  ],
+};
 
 const INITIAL_VIEW_STATE = {
   longitude: -46.6333,
@@ -17,11 +42,23 @@ const INITIAL_VIEW_STATE = {
 
 export const UrbanMap = () => {
   const mapRef = useRef<MapRef | null>(null);
-  const { scenarioContext, activeSystem, selectedHotspot, setSelectedHotspot, stage, pinEvidence, pinnedEvidence } = useCrisisStore();
+  const { scenarioContext, activeSystem, selectedHotspot, selectedHotspotFocusKey, setSelectedHotspot, stage } = useCrisisStore();
 
   const [mounted, setMounted] = useState(false);
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!mounted || !selectedHotspot) return;
+
+    mapRef.current?.flyTo({
+      center: [selectedHotspot.lng, selectedHotspot.lat],
+      zoom: Math.max(mapRef.current.getZoom(), 13.5),
+      pitch: INITIAL_VIEW_STATE.pitch,
+      bearing: INITIAL_VIEW_STATE.bearing,
+      duration: 850,
+    });
+  }, [mounted, selectedHotspot, selectedHotspotFocusKey]);
 
   if (!mounted) return null;
 
@@ -32,29 +69,58 @@ export const UrbanMap = () => {
     h => h.system === activeSystem && h.stageAppeared <= stage
   );
 
+  const recenterMap = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    mapRef.current?.flyTo({
+      center: [INITIAL_VIEW_STATE.longitude, INITIAL_VIEW_STATE.latitude],
+      zoom: INITIAL_VIEW_STATE.zoom,
+      pitch: INITIAL_VIEW_STATE.pitch,
+      bearing: INITIAL_VIEW_STATE.bearing,
+      duration: 900,
+    });
+  };
+
+  const getImportanceBadge = (hotspot: NonNullable<typeof selectedHotspot>) => {
+    const importance = getHotspotImportance(hotspot);
+    const label = getHotspotImportanceLabel(importance);
+
+    if (importance === 'high') {
+      return (
+        <span className="inline-flex items-center gap-1 border border-red-500/70 bg-red-500/10 px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-widest text-red-300">
+          <Siren className="h-3 w-3" />
+          {label}
+        </span>
+      );
+    }
+
+    if (importance === 'medium') {
+      return (
+        <span className="inline-flex items-center gap-1 border border-yellow-500/70 bg-yellow-500/10 px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-widest text-yellow-300">
+          <TriangleAlert className="h-3 w-3" />
+          {label}
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-flex items-center gap-1 border border-slate-600 bg-slate-700/10 px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-widest text-slate-400">
+        <Circle className="h-3 w-3" />
+        {label}
+      </span>
+    );
+  };
+
   return (
-    <div className="absolute inset-0 z-0">
+    <div className="absolute inset-0 z-0 bg-[#050b14]">
       <Map
         ref={mapRef}
         initialViewState={INITIAL_VIEW_STATE}
         mapStyle={MAP_STYLE}
+        style={{ width: '100%', height: '100%' }}
         minZoom={9}
         maxZoom={18}
         onClick={() => setSelectedHotspot(null)}
-        interactiveLayerIds={['building-extrusion']}
       >
-        {/* Adds 3D buildings to the dark map */}
-        <Source
-          id="openmaptiles"
-          type="vector"
-          url="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json" // Note: Carto doesn't provide building heights directly in standard free dark-matter without OpenMapTiles source. Let's omit extrusion unless we have a specific source, but we can try to style it if generic vector tiles are present.
-        />
-
-        {/* 
-          Since CARTO Dark matter might lack building extrusions, 
-          we will rely primarily on our custom layers for the tactical feel. 
-        */}
-
         {/* Hotspots */}
         {visibleHotspots.map(hotspot => (
           <Marker
@@ -141,25 +207,11 @@ export const UrbanMap = () => {
                         <span>[{hotspot.type === 'false_lead' ? 'UNVERIFIED' : hotspot.type === 'hint' ? 'ADVISORY' : hotspot.type} INTEL]</span>
                         <span className="text-slate-600 font-mono text-[8px] pl-4">{hotspot.lat.toFixed(4)}, {hotspot.lng.toFixed(4)}</span>
                       </div>
-                      <div className="text-xs text-slate-100 font-mono font-bold tracking-widest uppercase mb-1 leading-tight">{hotspot.title}</div>
-                      <div className="text-[11px] text-slate-400 font-mono leading-relaxed line-clamp-3 overflow-y-auto max-h-24 pointer-events-auto custom-scrollbar mb-2 uppercase">{hotspot.description}</div>
-
-                      {/* Action Row */}
-                      <div className="flex justify-end pt-2 border-t border-slate-800 pointer-events-auto">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            pinEvidence(hotspot);
-                          }}
-                          disabled={pinnedEvidence.some(h => h.id === hotspot.id)}
-                          className={`text-[9px] font-mono tracking-widest uppercase font-bold px-2 py-1 transition-colors border ${pinnedEvidence.some(h => h.id === hotspot.id)
-                            ? 'bg-[#020617] text-slate-600 border-slate-800 cursor-not-allowed'
-                            : 'bg-emerald-900/20 text-emerald-400 hover:bg-emerald-900/40 border-emerald-900 shadow-[inset_0_0_10px_rgba(52,211,153,0.1)]'
-                            }`}
-                        >
-                          {pinnedEvidence.some(h => h.id === hotspot.id) ? '[ PINNED ]' : '[+ PIN EVIDENCE]'}
-                        </button>
+                      <div className="mb-2">
+                        {getImportanceBadge(hotspot)}
                       </div>
+                      <div className="text-xs text-slate-100 font-mono font-bold tracking-widest uppercase mb-1 leading-tight">{hotspot.title}</div>
+                      <div className="text-[11px] text-slate-400 font-mono leading-relaxed overflow-y-auto max-h-28 pointer-events-auto custom-scrollbar">{simplifyHotspotDescription(hotspot)}</div>
                     </div>
 
                   </div>
@@ -170,6 +222,14 @@ export const UrbanMap = () => {
           </Marker>
         ))}
       </Map>
+
+      <button
+        onClick={recenterMap}
+        className="absolute top-[98px] left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 border border-cyan-400/60 bg-[#050b14]/80 px-4 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-200 shadow-[0_0_30px_rgba(6,182,212,0.18)] backdrop-blur-md transition-colors hover:border-cyan-300 hover:bg-cyan-400/10"
+      >
+        <Crosshair className="h-4 w-4" />
+        Center SP
+      </button>
     </div>
   );
 };

@@ -75,9 +75,6 @@ OUTPUT FORMAT EXACTLY LIKE THIS:
     }
     const parsed = JSON.parse(content);
     
-    // Generate the generic chart data
-    const chartData = generateChartData();
-
     // We only need to return the hotspots now since the base scenario is loaded instantly on the client
     return NextResponse.json({
       hotspots: parsed.hotspots
@@ -116,17 +113,4 @@ function generateFallbackHotspots(base: ScenarioData) {
   }
 
   return hotspots;
-}
-
-function generateChartData() {
-  return Array.from({ length: 5 }).map((_, i) => ({
-    stage: i + 1,
-    temperature: 30 + i * Math.random() * 2,
-    waterLevel: 50 + ((i*i) * Math.random() * 2),
-    energyUsage: 70 + (i * Math.random() * 6),
-    airQuality: 50 + (i * Math.random() * 15),
-    trafficIndex: 20 + (i * Math.random() * 10),
-    blockageLevel: Math.min(100, 30 + (i * 20)),
-    canopyDeficit: 10 + (i * 4)
-  }));
 }

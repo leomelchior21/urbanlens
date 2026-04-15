@@ -7,10 +7,14 @@ import { TopBar } from '@/components/layout/TopBar';
 import { LeftPanel } from '@/components/layout/LeftPanel';
 import { RightPanel } from '@/components/layout/RightPanel';
 import { UrbanMap } from '@/components/map/UrbanMap';
+import { BriefingOverlay } from '@/components/layout/BriefingOverlay';
+import { CrisisQuizOverlay } from '@/components/layout/CrisisQuizOverlay';
 
 export default function UrbanLensApp() {
-  const { setScenario, setHotspots, tickTimer, isRunning } = useCrisisStore();
+  const { setScenario, setHotspots, tickTimer, isRunning, setTimerRunning, scenarioContext, stage } = useCrisisStore();
   const [loading, setLoading] = useState(true);
+  const [showBriefing, setShowBriefing] = useState(true);
+  const [showQuiz, setShowQuiz] = useState(false);
 
   // Initialize Scenario on first load
   useEffect(() => {
@@ -46,12 +50,43 @@ export default function UrbanLensApp() {
     );
   }
 
+  const interfaceIsBlurred = showBriefing || showQuiz;
+
+  const beginInvestigation = () => {
+    setShowBriefing(false);
+    setTimerRunning(true);
+  };
+
+  const openQuiz = () => {
+    setTimerRunning(false);
+    setShowQuiz(true);
+  };
+
   return (
     <main className="relative w-full h-screen overflow-hidden bg-slate-950 font-sans selection:bg-blue-500/30">
-      <UrbanMap />
-      <TopBar />
-      <LeftPanel />
-      <RightPanel />
+      <div className={`h-full w-full transition-[filter,opacity] duration-300 ${interfaceIsBlurred ? 'pointer-events-none blur-sm opacity-45' : 'opacity-100'}`}>
+        <UrbanMap />
+        <TopBar />
+        <LeftPanel />
+        <RightPanel />
+      </div>
+
+      {scenarioContext && showBriefing && (
+        <BriefingOverlay scenario={scenarioContext} onBegin={beginInvestigation} />
+      )}
+
+      {scenarioContext && stage === 5 && !showBriefing && !showQuiz && (
+        <button
+          onClick={openQuiz}
+          className="fixed bottom-6 left-1/2 z-[70] -translate-x-1/2 border-2 border-red-300 bg-red-600 px-8 py-5 font-mono text-lg font-black uppercase tracking-[0.28em] text-white shadow-[0_0_45px_rgba(239,68,68,0.55)] transition-colors hover:bg-red-500"
+        >
+          Guess the Crisis
+        </button>
+      )}
+
+      {scenarioContext && showQuiz && (
+        <CrisisQuizOverlay key={scenarioContext.id} scenario={scenarioContext} onClose={() => setShowQuiz(false)} />
+      )}
     </main>
   );
 }

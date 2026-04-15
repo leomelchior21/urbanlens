@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+const STAGE_DURATION_SECONDS = 30;
+
 export type SystemType = 'Temperature' | 'Air' | 'Water' | 'Energy' | 'Mobility' | 'Waste' | 'Vegetation' | 'Soil' | 'Social' | 'Health';
 
 export type InvestigativeRole = 'root_clue' | 'secondary_clue' | 'symptom' | 'distractor' | 'false_lead';
@@ -44,6 +46,7 @@ interface CrisisState {
   timeRemaining: number; // In seconds, e.g. 120 per stage
   scenarioContext: ScenarioContext | null;
   selectedHotspot: Hotspot | null;
+  selectedHotspotFocusKey: number;
   isRunning: boolean;
   pinnedEvidence: Hotspot[]; // User-saved evidence
 
@@ -56,6 +59,7 @@ interface CrisisState {
   setSelectedHotspot: (hotspot: Hotspot | null) => void;
   resetCrisis: () => void;
   toggleTimer: () => void;
+  setTimerRunning: (isRunning: boolean) => void;
   pinEvidence: (hotspot: Hotspot) => void;
   unpinEvidence: (id: string) => void;
 }
@@ -73,20 +77,21 @@ function getInitialSystemForScenario(scenario: ScenarioContext): SystemType {
 export const useCrisisStore = create<CrisisState>((set) => ({
   activeSystem: 'Temperature', // Default
   stage: 1,
-  timeRemaining: 60,
+  timeRemaining: STAGE_DURATION_SECONDS,
   scenarioContext: null,
   selectedHotspot: null,
-  isRunning: true,
+  selectedHotspotFocusKey: 0,
+  isRunning: false,
   pinnedEvidence: [],
 
   setActiveSystem: (sys) => set({ activeSystem: sys, selectedHotspot: null }),
   setStage: (stage) => set({ stage }),
   tickTimer: () => set((state) => {
     if (!state.isRunning) return state;
-    if (state.timeRemaining <= 0) {
+    if (state.timeRemaining <= 1) {
       if (state.stage < 5) {
         const nextStage = state.stage + 1;
-        const nextDuration = 60;
+        const nextDuration = STAGE_DURATION_SECONDS;
         return { stage: nextStage, timeRemaining: nextDuration };
       } else {
         return { isRunning: false, timeRemaining: 0 };
@@ -103,7 +108,10 @@ export const useCrisisStore = create<CrisisState>((set) => ({
   setHotspots: (newHotspots) => set((state) => ({
     scenarioContext: state.scenarioContext ? { ...state.scenarioContext, hotspots: newHotspots } : null
   })),
-  setSelectedHotspot: (hotspot) => set({ selectedHotspot: hotspot }),
+  setSelectedHotspot: (hotspot) => set((state) => ({
+    selectedHotspot: hotspot,
+    selectedHotspotFocusKey: hotspot ? state.selectedHotspotFocusKey + 1 : state.selectedHotspotFocusKey,
+  })),
   pinEvidence: (hotspot) => set((state) => ({
     pinnedEvidence: state.pinnedEvidence.find(h => h.id === hotspot.id)
       ? state.pinnedEvidence
@@ -114,10 +122,12 @@ export const useCrisisStore = create<CrisisState>((set) => ({
   })),
   resetCrisis: () => set({
     stage: 1,
-    timeRemaining: 60,
+    timeRemaining: STAGE_DURATION_SECONDS,
     selectedHotspot: null,
-    isRunning: true,
+    selectedHotspotFocusKey: 0,
+    isRunning: false,
     pinnedEvidence: []
   }),
-  toggleTimer: () => set((state) => ({ isRunning: !state.isRunning }))
+  toggleTimer: () => set((state) => ({ isRunning: !state.isRunning })),
+  setTimerRunning: (isRunning) => set({ isRunning })
 }));

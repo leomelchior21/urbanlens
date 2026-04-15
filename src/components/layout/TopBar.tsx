@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useCrisisStore } from '@/store/useCrisisStore';
-import { Activity, ShieldAlert, Cpu } from 'lucide-react';
+import { Activity } from 'lucide-react';
 
 export const TopBar = () => {
   const { stage, timeRemaining, scenarioContext, isRunning, toggleTimer } = useCrisisStore();

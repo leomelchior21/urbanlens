@@ -247,7 +247,7 @@ export function generateMockHotspots(baseScenario: ScenarioContext): Hotspot[] {
     ];
 
     // REAL INTELLIGENCE TEMPLATES
-    const getTrueMessage = (sys: SystemType, t: Hotspot['type'], root: boolean) => {
+    const getTrueMessage = (sys: SystemType, t: Hotspot['type']) => {
       const templates = {
         news: [
           `BREAKING: Local authorities investigating unexpected ${sys} infrastructure anomalies.`,
@@ -292,7 +292,7 @@ export function generateMockHotspots(baseScenario: ScenarioContext): Hotspot[] {
       const types: Hotspot['type'][] = ['news', 'social', 'complaint', 'alert', 'hint'];
       finalType = types[Math.floor(Math.random() * types.length)];
       finalTitle = finalType === 'social' ? 'CITIZEN REPORT' : finalType === 'news' ? 'MEDIA INTERCEPT' : finalType === 'alert' ? 'SYSTEM_ALERT' : 'FIELD_ADVISORY';
-      finalDesc = getTrueMessage(system, finalType, isRoot);
+      finalDesc = getTrueMessage(system, finalType);
       finalSystem = system;
     }
 
