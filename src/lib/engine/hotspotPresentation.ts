@@ -53,6 +53,17 @@ export function getHotspotImportance(hotspot: Hotspot): HotspotImportance {
   return 'medium';
 }
 
+export function getHotspotImportanceLabel(importance: HotspotImportance) {
+  switch (importance) {
+    case 'high':
+      return 'Key clue';
+    case 'medium':
+      return 'Useful clue';
+    default:
+      return 'Low priority';
+  }
+}
+
 export function simplifyHotspotDescription(hotspot: Hotspot) {
   let text = hotspot.description
     .replace(/@\w+:\s*/g, 'Resident report: ')
